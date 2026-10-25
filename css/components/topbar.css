@@ -1,0 +1,152 @@
+/* ==========================================================================
+   Topbar Component
+   ========================================================================== */
+
+.topbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.topbar-left,
+.topbar-right {
+  position: relative;
+  pointer-events: auto;
+  z-index: 150;
+  isolation: isolate;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Hamburger button */
+.topbar-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  box-shadow: var(--shadow-panel);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  padding: 0;
+}
+
+.topbar-btn:hover {
+  background-color: var(--color-bg-button);
+  color: var(--color-primary);
+  border-color: var(--color-border-strong);
+}
+
+.topbar-btn:active { transform: scale(0.96); }
+
+/* Export button — forest green CTA */
+.topbar-action-btn {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 13px;
+  background-color: var(--color-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-button);
+  box-shadow: 0 1px 3px rgba(40, 116, 91, 0.3);
+  color: #ffffff;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease, transform 0.12s ease, box-shadow 0.14s ease;
+  letter-spacing: -0.01em;
+}
+
+.topbar-action-btn:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: 0 3px 10px rgba(40, 116, 91, 0.35);
+  transform: translateY(-1px);
+}
+
+.topbar-action-btn:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 1px 3px rgba(40, 116, 91, 0.2);
+}
+
+/* Dropdown */
+.app-menu-dropdown {
+  position: absolute;
+  top: 42px;
+  left: 0;
+  min-width: 198px;
+  background-color: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-popup);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 400;
+  animation: appMenuFadeIn 0.13s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes appMenuFadeIn {
+  from { opacity: 0; transform: translateY(-5px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.app-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--color-text-main);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+  text-align: left;
+}
+
+.app-menu-item:hover {
+  background-color: var(--color-bg-button);
+  color: var(--color-primary);
+}
+
+.app-menu-item:active { transform: scale(0.99); }
+
+.app-menu-item.item-danger:hover {
+  background-color: #fdecea;
+  color: var(--color-error);
+}
+
+.app-menu-item-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-menu-shortcut {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  margin-left: 12px;
+}
+
+.app-menu-separator {
+  height: 1px;
+  background-color: var(--color-border-subtle);
+  margin: 3px 0;
+}

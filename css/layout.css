@@ -1,0 +1,83 @@
+/* ==========================================================================
+   Application Layout Stylesheet
+   Organizes the viewport and floating UI layers above the two canvases.
+   ========================================================================== */
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Base class for all floating UI layers sitting on top of the canvases */
+.ui-layer {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none; /* Let clicks fall through transparent margins to the canvas */
+}
+
+/* Ensure interactive child elements inside UI containers receive pointer events */
+.ui-layer > * {
+  pointer-events: auto;
+}
+
+/* Top bar (App menu, file name, library, share button) */
+.topbar-container {
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 300; /* Must be above properties panel, toolbar, and all floating panels */
+}
+
+/* Center floating toolbar (Tool selection pills) */
+.toolbar-container {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 20;
+}
+
+/* Left properties panel — hidden until an element is selected */
+.properties-panel-container {
+  top: 76px;
+  left: 12px;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Bottom-left zoom controls (+, -, 100%) */
+.zoom-controls-container {
+  bottom: 12px;
+  left: 12px;
+}
+
+/* Bottom-right status bar / hints */
+.status-bar-container {
+  bottom: 12px;
+  right: 12px;
+}
+
+/* Context menu overlay */
+.context-menu-container {
+  top: 0;
+  left: 0;
+  display: none;
+}
+
+/* Modal dialogs overlay */
+.dialogs-container {
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: none;
+}

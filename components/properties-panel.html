@@ -1,0 +1,297 @@
+<!-- ==========================================================================
+     Element Properties Panel Component Template
+     Floating left panel for editing element colors, strokes, opacity, and text.
+     ========================================================================== -->
+
+<div class="properties-panel" role="region" aria-label="Element Properties">
+
+  <!-- Panel Header & Quick Actions -->
+  <div class="prop-header">
+    <span class="prop-header-title" id="prop-panel-title">Default Style</span>
+    <div class="prop-header-actions">
+      <button type="button" class="prop-action-btn" id="prop-action-copy" title="Copy selected (Ctrl+C)" aria-label="Copy">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </button>
+      <button type="button" class="prop-action-btn" id="prop-action-cut" title="Cut selected (Ctrl+X)" aria-label="Cut">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+      </button>
+      <button type="button" class="prop-action-btn" id="prop-action-duplicate" title="Duplicate selected (Ctrl+D)" aria-label="Duplicate">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <rect x="3" y="3" width="13" height="13" rx="2" ry="2"></rect>
+        </svg>
+      </button>
+      <button type="button" class="prop-action-btn" id="prop-action-group" title="Group selected (Ctrl+G)" aria-label="Group">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+        </svg>
+      </button>
+      <button type="button" class="prop-action-btn" id="prop-action-ungroup" title="Ungroup selected (Ctrl+Shift+G)" aria-label="Ungroup">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+        </svg>
+      </button>
+      <button type="button" class="prop-action-btn prop-btn-danger" id="prop-action-delete" title="Delete selected (Delete)" aria-label="Delete">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 1. Stroke / Color Section -->
+  <div class="prop-group" id="prop-group-stroke">
+    <label class="prop-label" id="stroke-label">Stroke</label>
+    <div class="color-palette" data-property="strokeColor">
+      <button type="button" class="color-swatch active" data-color="#1e1e24" style="background-color: #1e1e24;" title="Charcoal Black"></button>
+      <button type="button" class="color-swatch" data-color="#e03131" style="background-color: #e03131;" title="Red"></button>
+      <button type="button" class="color-swatch" data-color="#2f9e44" style="background-color: #2f9e44;" title="Green"></button>
+      <button type="button" class="color-swatch" data-color="#1971c2" style="background-color: #1971c2;" title="Blue"></button>
+      <button type="button" class="color-swatch" data-color="#f08c00" style="background-color: #f08c00;" title="Orange"></button>
+      <button type="button" class="color-swatch" data-color="#9c36b5" style="background-color: #9c36b5;" title="Purple"></button>
+      
+      <!-- Custom Color Picker Wrapper -->
+      <label class="color-picker-label" title="Custom stroke color">
+        <input type="color" class="color-picker-input" id="stroke-color-picker" value="#1e1e24">
+        <span class="color-picker-icon">🎨</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- 2. Background / Fill Color Section -->
+  <div class="prop-group" id="prop-group-bg">
+    <label class="prop-label">Background</label>
+    <div class="color-palette" data-property="backgroundColor">
+      <button type="button" class="color-swatch swatch-transparent active" data-color="transparent" title="Transparent">
+        <span class="swatch-slash"></span>
+      </button>
+      <button type="button" class="color-swatch" data-color="#ffc9c9" style="background-color: #ffc9c9;" title="Light Red"></button>
+      <button type="button" class="color-swatch" data-color="#b2f2bb" style="background-color: #b2f2bb;" title="Light Green"></button>
+      <button type="button" class="color-swatch" data-color="#a5d8ff" style="background-color: #a5d8ff;" title="Light Blue"></button>
+      <button type="button" class="color-swatch" data-color="#ffec99" style="background-color: #ffec99;" title="Light Yellow"></button>
+      <button type="button" class="color-swatch" data-color="#ececfb" style="background-color: #ececfb;" title="Lavender"></button>
+
+      <!-- Custom Color Picker Wrapper -->
+      <label class="color-picker-label" title="Custom background color">
+        <input type="color" class="color-picker-input" id="bg-color-picker" value="#ffffff">
+        <span class="color-picker-icon">🎨</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- 3. Fill Style Section -->
+  <div class="prop-group" id="prop-group-fill-style">
+    <label class="prop-label">Fill Style</label>
+    <div class="button-group" data-property="fillStyle">
+      <button type="button" class="prop-btn active" data-value="solid" title="Solid fill">
+        <span class="icon-text">Solid</span>
+      </button>
+      <button type="button" class="prop-btn" data-value="semi" title="Semi-transparent tint">
+        <span class="icon-text">Tint</span>
+      </button>
+      <button type="button" class="prop-btn" data-value="transparent" title="Outline only">
+        <span class="icon-text">None</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 4. Stroke Width Section -->
+  <div class="prop-group" id="prop-group-stroke-width">
+    <label class="prop-label">Stroke Width</label>
+    <div class="button-group" data-property="strokeWidth">
+      <button type="button" class="prop-btn" data-value="1" title="Thin (1px)">
+        <span class="stroke-preview stroke-thin"></span>
+      </button>
+      <button type="button" class="prop-btn active" data-value="2" title="Medium (2px)">
+        <span class="stroke-preview stroke-medium"></span>
+      </button>
+      <button type="button" class="prop-btn" data-value="4" title="Bold (4px)">
+        <span class="stroke-preview stroke-bold"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 5. Stroke Style Section -->
+  <div class="prop-group" id="prop-group-stroke-style">
+    <label class="prop-label">Stroke Style</label>
+    <div class="button-group" data-property="strokeStyle">
+      <button type="button" class="prop-btn active" data-value="solid" title="Solid">
+        <span class="dash-preview dash-solid"></span>
+      </button>
+      <button type="button" class="prop-btn" data-value="dashed" title="Dashed">
+        <span class="dash-preview dash-dashed"></span>
+      </button>
+      <button type="button" class="prop-btn" data-value="dotted" title="Dotted">
+        <span class="dash-preview dash-dotted"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 6. Sloppiness / Roughness Section -->
+  <div class="prop-group" id="prop-group-roughness">
+    <label class="prop-label">Sloppiness</label>
+    <div class="button-group" data-property="roughness">
+      <button type="button" class="prop-btn" data-value="0" title="Architect (Clean & Straight)">
+        <span class="icon-text">Architect</span>
+      </button>
+      <button type="button" class="prop-btn active" data-value="1" title="Artist (Hand-drawn)">
+        <span class="icon-text">Artist</span>
+      </button>
+      <button type="button" class="prop-btn" data-value="2" title="Cartoonist (Wobbly)">
+        <span class="icon-text">Cartoonist</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 7. Text-Specific Options (Font Family, Font Size, Text Align) -->
+  <div class="prop-text-container" id="prop-group-text" style="display: none;">
+    <div class="prop-separator"></div>
+
+    <!-- Font Family -->
+    <div class="prop-group">
+      <label class="prop-label">Font Family</label>
+      <div class="button-group" data-property="fontFamily">
+        <button type="button" class="prop-btn active" data-value="1" title="Hand-drawn (Caveat)">
+          <span class="font-preview font-hand">Hand</span>
+        </button>
+        <button type="button" class="prop-btn" data-value="2" title="Sans-Serif (Inter)">
+          <span class="font-preview font-sans">Sans</span>
+        </button>
+        <button type="button" class="prop-btn" data-value="3" title="Monospace (Courier)">
+          <span class="font-preview font-mono">Code</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Font Size -->
+    <div class="prop-group">
+      <label class="prop-label">Font Size</label>
+      <div class="button-group" data-property="fontSize">
+        <button type="button" class="prop-btn" data-value="16" title="Small (16px)">S</button>
+        <button type="button" class="prop-btn active" data-value="20" title="Medium (20px)">M</button>
+        <button type="button" class="prop-btn" data-value="28" title="Large (28px)">L</button>
+        <button type="button" class="prop-btn" data-value="36" title="Extra Large (36px)">XL</button>
+      </div>
+    </div>
+
+    <!-- Text Alignment -->
+    <div class="prop-group">
+      <label class="prop-label">Text Align</label>
+      <div class="button-group" data-property="textAlign">
+        <button type="button" class="prop-btn active" data-value="left" title="Align Left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>
+        </button>
+        <button type="button" class="prop-btn" data-value="center" title="Align Center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line></svg>
+        </button>
+        <button type="button" class="prop-btn" data-value="right" title="Align Right">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Opacity Slider Section -->
+  <div class="prop-group" id="prop-group-opacity">
+    <div class="prop-slider-header">
+      <label class="prop-label">Opacity</label>
+      <span class="prop-value-badge" id="opacity-value-label">100%</span>
+    </div>
+    <input type="range" class="prop-slider" id="opacity-slider" min="10" max="100" step="5" value="100">
+  </div>
+
+  <!-- 9. Layer Order Section (Active when elements are selected) -->
+  <div class="prop-group" id="prop-group-layers" style="display: none;">
+    <div class="prop-separator"></div>
+    <label class="prop-label">Layers</label>
+    <div class="button-group" id="layer-actions-group">
+      <button type="button" class="prop-btn" id="btn-layer-send-back" title="Send to back (Ctrl+Shift+[)" aria-label="Send to back">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="7 13 12 18 17 13"></polyline>
+          <polyline points="7 6 12 11 17 6"></polyline>
+        </svg>
+      </button>
+      <button type="button" class="prop-btn" id="btn-layer-send-backward" title="Send backward (Ctrl+[)" aria-label="Send backward">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <button type="button" class="prop-btn" id="btn-layer-bring-forward" title="Bring forward (Ctrl+])" aria-label="Bring forward">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+      </button>
+      <button type="button" class="prop-btn" id="btn-layer-bring-front" title="Bring to front (Ctrl+Shift+])" aria-label="Bring to front">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="17 11 12 6 7 11"></polyline>
+          <polyline points="17 18 12 13 7 18"></polyline>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 10. Alignment Section (Active when 2+ elements are selected) -->
+  <div class="prop-group" id="prop-group-align" style="display: none;">
+    <div class="prop-separator"></div>
+    <label class="prop-label">Align</label>
+    <div class="button-group align-actions-row" id="align-actions-group">
+      <button type="button" class="prop-btn" id="btn-align-left" title="Align left edges" aria-label="Align left">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="3" x2="4" y2="21"/><rect x="6" y="7" width="10" height="4" rx="1"/><rect x="6" y="13" width="14" height="4" rx="1"/>
+        </svg>
+      </button>
+      <button type="button" class="prop-btn" id="btn-align-center-h" title="Align horizontal centers" aria-label="Align center horizontal">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="3" x2="12" y2="21"/><rect x="6" y="7" width="12" height="4" rx="1"/><rect x="4" y="13" width="16" height="4" rx="1"/>
+        </svg>
+      </button>
+      <button type="button" class="prop-btn" id="btn-align-right" title="Align right edges" aria-label="Align right">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="20" y1="3" x2="20" y2="21"/><rect x="8" y="7" width="10" height="4" rx="1"/><rect x="4" y="13" width="14" height="4" rx="1"/>
+        </svg>
+      </button>
+      <button type="button" class="prop-btn" id="btn-align-top" title="Align top edges" aria-label="Align top">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="4" x2="21" y2="4"/><rect x="7" y="6" width="4" height="10" rx="1"/><rect x="13" y="6" width="4" height="14" rx="1"/>
+        </svg>
+      </button>
+      <button type="button" class="prop-btn" id="btn-align-center-v" title="Align vertical centers" aria-label="Align center vertical">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"/><rect x="7" y="4" width="4" height="16" rx="1"/><rect x="13" y="6" width="4" height="12" rx="1"/>
+        </svg>
+      </button>
+      <button type="button" class="prop-btn" id="btn-align-bottom" title="Align bottom edges" aria-label="Align bottom">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="20" x2="21" y2="20"/><rect x="7" y="4" width="4" height="14" rx="1"/><rect x="13" y="4" width="4" height="10" rx="1"/>
+        </svg>
+      </button>
+    </div>
+    <label class="prop-label" style="margin-top: 6px;">Distribute</label>
+    <div class="button-group distribute-actions-row" id="distribute-actions-group">
+      <button type="button" class="prop-btn" id="btn-distribute-h" title="Distribute horizontally (equal spacing)" aria-label="Distribute horizontal">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="3" x2="4" y2="21"/><line x1="20" y1="3" x2="20" y2="21"/><rect x="9" y="8" width="6" height="8" rx="1"/>
+        </svg>
+      </button>
+      <button type="button" class="prop-btn" id="btn-distribute-v" title="Distribute vertically (equal spacing)" aria-label="Distribute vertical">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="4" x2="21" y2="4"/><line x1="3" y1="20" x2="21" y2="20"/><rect x="8" y="9" width="8" height="6" rx="1"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+</div>

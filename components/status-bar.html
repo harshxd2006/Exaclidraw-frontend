@@ -1,0 +1,26 @@
+<!-- ==========================================================================
+     Status Bar Component Template
+     Bottom-right unobtrusive auto-save status and scene element metrics.
+     Reference: packages/excalidraw/components/LayerUI.tsx in Excalidraw
+     ========================================================================== -->
+
+<div class="status-bar" role="status" aria-live="polite">
+  <!-- Auto-Save Persistence Status -->
+  <div class="status-save-group" id="status-save-group" title="Auto-saved to your browser's local storage">
+    <span class="status-icon" id="status-save-icon">
+      <!-- Default: Saved checkmark cloud -->
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 16.9A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>
+        <polyline points="9 11 12 14 22 4"></polyline>
+      </svg>
+    </span>
+    <span class="status-text" id="status-save-text">Saved</span>
+  </div>
+
+  <div class="status-divider"></div>
+
+  <!-- Scene Elements / Selection Metrics -->
+  <div class="status-metrics-group" id="status-metrics-group">
+    <span class="status-metrics-text" id="status-metrics-text">0 elements</span>
+  </div>
+</div>

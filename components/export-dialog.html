@@ -1,0 +1,87 @@
+<!-- ==========================================================================
+     Export Dialog Component Template
+     Modal dialog with live image preview, format options, and download triggers.
+     Reference: packages/excalidraw/components/ExportDialog.tsx in Excalidraw
+     ========================================================================== -->
+
+<div class="modal-backdrop" id="export-dialog-backdrop">
+  <div class="export-dialog" role="dialog" aria-modal="true" aria-labelledby="export-dialog-title">
+    <!-- Header -->
+    <div class="dialog-header">
+      <h2 class="dialog-title" id="export-dialog-title">Export image</h2>
+      <button type="button" class="dialog-close-btn" id="btn-close-export" aria-label="Close dialog">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="dialog-body">
+      <!-- Live Image Preview Card -->
+      <div class="export-preview-container">
+        <div class="export-preview-card" id="export-preview-card">
+          <img id="export-preview-img" alt="Export preview" src="">
+        </div>
+      </div>
+
+      <!-- Settings Panel -->
+      <div class="export-settings">
+        <!-- 1. Format Selection (PNG vs SVG) -->
+        <div class="export-setting-group">
+          <label class="setting-label">Format</label>
+          <div class="segmented-control" id="export-format-control">
+            <button type="button" class="segment-btn active" data-format="png">PNG</button>
+            <button type="button" class="segment-btn" data-format="svg">SVG</button>
+          </div>
+        </div>
+
+        <!-- 2. Scale Selection (1x, 2x, 3x) -->
+        <div class="export-setting-group" id="group-export-scale">
+          <label class="setting-label">Scale</label>
+          <div class="segmented-control" id="export-scale-control">
+            <button type="button" class="segment-btn" data-scale="1">1x</button>
+            <button type="button" class="segment-btn active" data-scale="2">2x</button>
+            <button type="button" class="segment-btn" data-scale="3">3x</button>
+          </div>
+        </div>
+
+        <!-- 3. Export Options Checkboxes -->
+        <div class="export-setting-group">
+          <label class="setting-label">Options</label>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chk-export-bg" checked>
+              <span>Include canvas background</span>
+            </label>
+            <label class="checkbox-label" id="lbl-export-selected-only">
+              <input type="checkbox" id="chk-export-selected-only">
+              <span>Export selected elements only</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="dialog-footer">
+      <button type="button" class="dialog-btn btn-secondary" id="btn-export-copy-clipboard">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span id="btn-export-copy-label">Copy to clipboard</span>
+      </button>
+
+      <button type="button" class="dialog-btn btn-primary" id="btn-export-download">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span id="btn-export-download-label">Download PNG</span>
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,105 @@
+<!-- ==========================================================================
+     Toolbar Component Template
+     Floating top-center shape selector matching Excalidraw's layout.
+     ========================================================================== -->
+
+<div class="toolbar" role="toolbar" aria-label="Drawing Tools">
+
+  <!-- Lock Tool Toggle -->
+  <button type="button" class="tool-btn" id="tool-lock" data-tool="lock" title="Keep selected tool active (Q)" aria-label="Lock tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+    <span class="tool-badge">Q</span>
+  </button>
+
+  <div class="tool-separator"></div>
+
+  <!-- Hand Tool (Panning) -->
+  <button type="button" class="tool-btn" id="tool-hand" data-tool="hand" title="Hand (Pan tool) (H)" aria-label="Hand tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 11V6a2 2 0 0 0-4 0v5"></path>
+      <path d="M14 10V4a2 2 0 0 0-4 0v7"></path>
+      <path d="M10 10.5V6a2 2 0 0 0-4 0v8"></path>
+      <path d="M6 14v-1.5a2 2 0 0 0-4 0v6.5a7 7 0 0 0 7 7h3a7 7 0 0 0 7-7v-5a2 2 0 0 0-4 0"></path>
+    </svg>
+    <span class="tool-badge">H</span>
+  </button>
+
+  <!-- Selection Tool -->
+  <button type="button" class="tool-btn active" id="tool-selection" data-tool="selection" title="Selection (V or 1)" aria-label="Selection tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3l7 18 3-7 7-3L3 3z"></path>
+    </svg>
+    <span class="tool-badge">1</span>
+  </button>
+
+  <!-- Rectangle Tool -->
+  <button type="button" class="tool-btn" id="tool-rectangle" data-tool="rectangle" title="Rectangle (R or 2)" aria-label="Rectangle tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+    </svg>
+    <span class="tool-badge">2</span>
+  </button>
+
+  <!-- Diamond Tool -->
+  <button type="button" class="tool-btn" id="tool-diamond" data-tool="diamond" title="Diamond (D or 3)" aria-label="Diamond tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2l10 10-10 10L2 12z"></path>
+    </svg>
+    <span class="tool-badge">3</span>
+  </button>
+
+  <!-- Ellipse Tool -->
+  <button type="button" class="tool-btn" id="tool-ellipse" data-tool="ellipse" title="Ellipse (O or 4)" aria-label="Ellipse tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+    </svg>
+    <span class="tool-badge">4</span>
+  </button>
+
+  <!-- Arrow Tool -->
+  <button type="button" class="tool-btn" id="tool-arrow" data-tool="arrow" title="Arrow (A or 5)" aria-label="Arrow tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="5" y1="19" x2="19" y2="5"></line>
+      <polyline points="12 5 19 5 19 12"></polyline>
+    </svg>
+    <span class="tool-badge">5</span>
+  </button>
+
+  <!-- Line Tool -->
+  <button type="button" class="tool-btn" id="tool-line" data-tool="line" title="Line (L or 6)" aria-label="Line tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="5" y1="19" x2="19" y2="5"></line>
+    </svg>
+    <span class="tool-badge">6</span>
+  </button>
+
+  <!-- Pencil / Freehand Tool -->
+  <button type="button" class="tool-btn" id="tool-freedraw" data-tool="freedraw" title="Pencil / Draw (P or 7)" aria-label="Pencil tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+    </svg>
+    <span class="tool-badge">7</span>
+  </button>
+
+  <!-- Text Tool -->
+  <button type="button" class="tool-btn" id="tool-text" data-tool="text" title="Text (T or 8)" aria-label="Text tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 7 4 4 20 4 20 7"></polyline>
+      <line x1="9" y1="20" x2="15" y2="20"></line>
+      <line x1="12" y1="4" x2="12" y2="20"></line>
+    </svg>
+    <span class="tool-badge">8</span>
+  </button>
+
+  <!-- Eraser Tool -->
+  <button type="button" class="tool-btn" id="tool-eraser" data-tool="eraser" title="Eraser (E or 0)" aria-label="Eraser tool">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 20H7L3 16C2 15 2 13 3 12L13 2C14 1 16 1 17 2L22 7C23 8 23 10 22 11L14 19"></path>
+    </svg>
+    <span class="tool-badge">0</span>
+  </button>
+
+</div>

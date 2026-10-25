@@ -1,0 +1,92 @@
+/* ==========================================================================
+   Context Menu Component Stylesheet
+   Floating right-click context menu for layer ordering and element actions.
+   ========================================================================== */
+
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 200px;
+  background-color: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--font-ui);
+  animation: contextMenuFadeIn 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes contextMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--color-text-main);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.context-menu-item:hover {
+  background-color: var(--color-bg-button);
+  color: var(--color-primary);
+}
+
+.context-menu-item.item-danger:hover {
+  background-color: #fdecea;
+  color: var(--color-error);
+}
+
+.context-menu-label-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.context-menu-icon {
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+}
+
+.context-menu-item:hover .context-menu-icon {
+  color: currentColor;
+}
+
+.context-menu-shortcut {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: var(--color-border-subtle);
+  margin: 4px 0;
+}

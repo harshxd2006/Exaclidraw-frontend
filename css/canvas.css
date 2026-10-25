@@ -1,0 +1,49 @@
+/* ==========================================================================
+   Two-Canvas Architecture Stylesheet
+   Governs canvas layering, positioning, and pointer events delegation.
+   ========================================================================== */
+
+/* The workspace wraps the entire drawing area behind floating UI panels */
+.workspace {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-bg-canvas);
+  z-index: 0;
+}
+
+/* The canvas container holds both layered canvases and captures pointer events */
+.canvas-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Canvas 1: Static Drawing Canvas (Committed elements, grid, background) */
+#static-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none; /* Let parent container capture all clicks */
+}
+
+/* Canvas 2: Interactive Overlay Canvas (Draft previews, selection box, resize handles) */
+#interactive-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none; /* Never blocks pointer events from reaching workspace */
+}

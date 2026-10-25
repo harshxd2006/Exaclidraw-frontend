@@ -1,0 +1,89 @@
+/* ==========================================================================
+   Toolbar Component
+   ========================================================================== */
+
+.toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background-color: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tool-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-button);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.1s ease, color 0.1s ease, transform 0.08s ease;
+}
+
+.tool-btn:hover {
+  background-color: var(--color-bg-button);
+  color: var(--color-text-main);
+}
+
+.tool-btn:active { transform: scale(0.95); }
+
+.tool-btn svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  pointer-events: none;
+  flex-shrink: 0;
+  transition: stroke 0.1s ease;
+}
+
+/* Active: green tint background + green icon */
+.tool-btn.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.tool-btn.locked {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+.tool-btn.locked svg { stroke: var(--color-text-inverse); }
+
+/* Shortcut badge */
+.tool-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  font-size: 8.5px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.tool-btn.active .tool-badge { color: var(--color-primary); opacity: 0.9; }
+.tool-btn.locked .tool-badge { color: var(--color-text-inverse); opacity: 0.85; }
+
+/* Divider */
+.tool-separator {
+  width: 1px;
+  height: 18px;
+  background-color: var(--color-border);
+  margin: 0 2px;
+  flex-shrink: 0;
+}

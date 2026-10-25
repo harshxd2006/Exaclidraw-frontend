@@ -1,0 +1,276 @@
+/* ==========================================================================
+   Export Dialog Modal Stylesheet
+   Modal overlay with live preview thumbnail, format selection, and actions.
+   ========================================================================== */
+
+.dialogs-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: backdropFadeIn 0.15s ease-out;
+}
+
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.export-dialog {
+  width: 100%;
+  max-width: 520px;
+  background-color: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: var(--font-ui);
+  animation: dialogScaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dialogScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Header */
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.dialog-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.dialog-close-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  padding: 0;
+}
+
+.dialog-close-btn:hover {
+  background-color: var(--color-bg-button-hover);
+  color: var(--color-text-main);
+}
+
+/* Body */
+.dialog-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(85vh - 130px);
+  overflow-y: auto;
+}
+
+/* Preview Card */
+.export-preview-container {
+  display: flex;
+  justify-content: center;
+}
+
+.export-preview-card {
+  width: 100%;
+  height: 200px;
+  background-color: #f8f9fa;
+  background-image: linear-gradient(45deg, #e9ecef 25%, transparent 25%),
+                    linear-gradient(-45deg, #e9ecef 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #e9ecef 75%),
+                    linear-gradient(-45deg, transparent 75%, #e9ecef 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.export-preview-card img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+}
+
+/* Settings Controls */
+.export-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.export-setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setting-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.segmented-control {
+  display: flex;
+  background-color: var(--color-bg-button);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  gap: 2px;
+}
+
+.segment-btn {
+  flex: 1;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.segment-btn:hover {
+  color: var(--color-text-main);
+}
+
+.segment-btn.active {
+  background-color: var(--color-bg-panel);
+  color: var(--color-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-main);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* Footer Actions */
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-border-subtle);
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+.dialog-btn {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border-radius: var(--radius-button);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  border: 1px solid transparent;
+}
+
+.dialog-btn.btn-secondary {
+  background-color: var(--color-bg-button);
+  color: var(--color-text-main);
+  border-color: var(--color-border);
+}
+
+.dialog-btn.btn-secondary:hover {
+  background-color: var(--color-bg-button-hover);
+  border-color: var(--color-border-subtle);
+}
+
+.dialog-btn.btn-primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(40, 116, 91, 0.25);
+}
+
+.dialog-btn.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  box-shadow: 0 4px 12px rgba(40, 116, 91, 0.35);
+  transform: translateY(-1px);
+}
+
+.dialog-btn.btn-primary:active {
+  transform: translateY(0);
+}

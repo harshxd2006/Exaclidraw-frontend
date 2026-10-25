@@ -1,0 +1,65 @@
+/* ==========================================================================
+   Theme — Dark Mode with Forest Green accent
+   ========================================================================== */
+
+[data-theme="dark"] {
+  --color-primary:        #4AAB88;
+  --color-primary-hover:  #5BBC99;
+  --color-primary-active: #6CCAAA;
+  --color-primary-light:  rgba(74, 171, 136, 0.1);
+
+  --color-bg-app:           #111110;
+  --color-bg-canvas:        #141413;
+  --color-bg-panel:         #1C1B19;
+  --color-bg-panel-hover:   #232220;
+  --color-bg-button:        #252421;
+  --color-bg-button-hover:  #2E2D29;
+  --color-bg-button-active: #363530;
+
+  --color-border:        #2F2E2A;
+  --color-border-subtle: #262520;
+  --color-border-strong: #3C3B36;
+  --color-border-focus:  rgba(74, 171, 136, 0.25);
+
+  --color-text-main:      #ECEAE5;
+  --color-text-secondary: #8C8A84;
+  --color-text-muted:     #5C5A56;
+  --color-text-inverse:   #111110;
+
+  --color-selection:        #4AAB88;
+  --color-selection-fill:   rgba(74, 171, 136, 0.1);
+  --color-selection-border: #3A7A62;
+  --color-handle:           #1C1B19;
+  --color-handle-border:    #4AAB88;
+  --color-grid:             #1E1D1A;
+
+  --shadow-panel:  0 2px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-button: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-popup:  0 12px 32px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .color-swatch.active {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 0 3px rgba(74, 171, 136, 0.35);
+}
+
+[data-theme="dark"] .prop-btn.active {
+  background-color: var(--color-bg-button-hover);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--color-border-strong);
+}
+
+[data-theme="dark"] .prop-action-btn.prop-btn-danger:hover {
+  background-color: rgba(192, 57, 43, 0.15);
+}
+
+[data-theme="dark"] .color-swatch[data-color="#1e1e24"] {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="dark"] .swatch-transparent {
+  background-color: var(--color-bg-button);
+  background-image:
+    linear-gradient(45deg, #3a3935 25%, transparent 25%),
+    linear-gradient(-45deg, #3a3935 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #3a3935 75%),
+    linear-gradient(-45deg, transparent 75%, #3a3935 75%);
+}

@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Excalidraw - Vanilla JavaScript</title>
+  <meta name="description" content="Vanilla HTML, CSS, and Canvas 2D implementation of Excalidraw's frontend architecture">
+
+  <!-- Typography: Google Fonts (Inter for clean UI, Caveat for hand-drawn labels) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Core Stylesheets -->
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/canvas.css">
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/components/toolbar.css">
+  <link rel="stylesheet" href="css/components/text-editor.css">
+  <link rel="stylesheet" href="css/components/properties-panel.css">
+  <link rel="stylesheet" href="css/components/zoom-controls.css">
+  <link rel="stylesheet" href="css/components/context-menu.css">
+  <link rel="stylesheet" href="css/components/topbar.css">
+  <link rel="stylesheet" href="css/components/export-dialog.css">
+  <link rel="stylesheet" href="css/components/status-bar.css">
+  <link rel="stylesheet" href="css/components/floating-toolbar.css">
+  <link rel="stylesheet" href="css/components/layers-panel.css">
+
+  <!-- Apply saved theme before first paint to avoid flash -->
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem('excalidraw-theme') === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <!-- Main Application Root -->
+  <div id="app">
+
+    <!-- Topbar Container -->
+    <header id="topbar-container" class="ui-layer topbar-container">
+      <div class="topbar-left">
+        <!-- Hamburger Main Menu Button -->
+        <button type="button" class="topbar-btn" id="btn-app-menu" title="Main menu" aria-label="Main menu" aria-haspopup="true" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <!-- Main Menu Dropdown -->
+        <div class="app-menu-dropdown" id="app-menu-dropdown" style="display: none;" role="menu">
+
+          <!-- Dark Mode Toggle -->
+          <button type="button" class="app-menu-item" id="menu-item-theme" role="menuitem">
+            <div class="app-menu-item-label">
+              <span id="menu-theme-icon">
+                <!-- Moon icon (shown in light mode) -->
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+              </span>
+              <span id="menu-theme-label">Dark mode</span>
+            </div>
+            <span class="app-menu-shortcut">Alt+D</span>
+          </button>
+
+          <div class="app-menu-separator"></div>
+
+          <!-- Open / Load File -->
+          <button type="button" class="app-menu-item" id="menu-item-open" role="menuitem">
+            <div class="app-menu-item-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span>Open...</span>
+            </div>
+            <span class="app-menu-shortcut">Ctrl+O</span>
+          </button>
+
+          <!-- Save to Disk -->
+          <button type="button" class="app-menu-item" id="menu-item-save" role="menuitem">
+            <div class="app-menu-item-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>Save to disk</span>
+            </div>
+            <span class="app-menu-shortcut">Ctrl+S</span>
+          </button>
+
+          <!-- Export Image Modal -->
+          <button type="button" class="app-menu-item" id="menu-item-export" role="menuitem">
+            <div class="app-menu-item-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <span>Export image...</span>
+            </div>
+            <span class="app-menu-shortcut">Ctrl+Shift+E</span>
+          </button>
+
+          <div class="app-menu-separator"></div>
+
+          <!-- Reset Canvas -->
+          <button type="button" class="app-menu-item item-danger" id="menu-item-reset" role="menuitem">
+            <div class="app-menu-item-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Reset canvas</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Hidden File Input for Loading .excalidraw files -->
+        <input type="file" id="file-input-load" accept=".excalidraw,.json" style="display: none;">
+      </div>
+
+      <div class="topbar-right">
+        <!-- Quick Export Button -->
+        <button type="button" class="topbar-action-btn" id="btn-quick-export" title="Export image (Ctrl+Shift+E)" aria-label="Export image">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Export</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Floating Shape Toolbar Container -->
+    <nav id="toolbar-container" class="ui-layer toolbar-container">
+      <div class="toolbar" role="toolbar" aria-label="Drawing Tools">
+        <!-- Lock Tool Toggle -->
+        <button type="button" class="tool-btn" id="tool-lock" data-tool="lock" title="Keep selected tool active (Q)" aria-label="Lock tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span class="tool-badge">Q</span>
+        </button>
+
+        <div class="tool-separator"></div>
+
+        <!-- Hand Tool (Panning) -->
+        <button type="button" class="tool-btn" id="tool-hand" data-tool="hand" title="Hand (Pan tool) (H)" aria-label="Hand tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-4 0v5"></path>
+            <path d="M14 10V4a2 2 0 0 0-4 0v7"></path>
+            <path d="M10 10.5V6a2 2 0 0 0-4 0v8"></path>
+            <path d="M6 14v-1.5a2 2 0 0 0-4 0v6.5a7 7 0 0 0 7 7h3a7 7 0 0 0 7-7v-5a2 2 0 0 0-4 0"></path>
+          </svg>
+          <span class="tool-badge">H</span>
+        </button>
+
+        <!-- Selection Tool -->
+        <button type="button" class="tool-btn active" id="tool-selection" data-tool="selection" title="Selection (V or 1)" aria-label="Selection tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3l7 18 3-7 7-3L3 3z"></path>
+          </svg>
+          <span class="tool-badge">1</span>
+        </button>
+
+        <!-- Rectangle Tool -->
+        <button type="button" class="tool-btn" id="tool-rectangle" data-tool="rectangle" title="Rectangle (R or 2)" aria-label="Rectangle tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+          </svg>
+          <span class="tool-badge">2</span>
+        </button>
+
+        <!-- Diamond Tool -->
+        <button type="button" class="tool-btn" id="tool-diamond" data-tool="diamond" title="Diamond (D or 3)" aria-label="Diamond tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l10 10-10 10L2 12z"></path>
+          </svg>
+          <span class="tool-badge">3</span>
+        </button>
+
+        <!-- Ellipse Tool -->
+        <button type="button" class="tool-btn" id="tool-ellipse" data-tool="ellipse" title="Ellipse (O or 4)" aria-label="Ellipse tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+          </svg>
+          <span class="tool-badge">4</span>
+        </button>
+
+        <!-- Arrow Tool -->
+        <button type="button" class="tool-btn" id="tool-arrow" data-tool="arrow" title="Arrow (A or 5)" aria-label="Arrow tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="19" x2="19" y2="5"></line>
+            <polyline points="12 5 19 5 19 12"></polyline>
+          </svg>
+          <span class="tool-badge">5</span>
+        </button>
+
+        <!-- Line Tool -->
+        <button type="button" class="tool-btn" id="tool-line" data-tool="line" title="Line (L or 6)" aria-label="Line tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="19" x2="19" y2="5"></line>
+          </svg>
+          <span class="tool-badge">6</span>
+        </button>
+
+        <!-- Pencil / Freehand Tool -->
+        <button type="button" class="tool-btn" id="tool-freedraw" data-tool="freedraw" title="Pencil / Draw (P or 7)" aria-label="Pencil tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+          </svg>
+          <span class="tool-badge">7</span>
+        </button>
+
+        <!-- Text Tool -->
+        <button type="button" class="tool-btn" id="tool-text" data-tool="text" title="Text (T or 8)" aria-label="Text tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 7 4 4 20 4 20 7"></polyline>
+            <line x1="9" y1="20" x2="15" y2="20"></line>
+            <line x1="12" y1="4" x2="12" y2="20"></line>
+          </svg>
+          <span class="tool-badge">8</span>
+        </button>
+
+        <!-- Eraser Tool -->
+        <button type="button" class="tool-btn" id="tool-eraser" data-tool="eraser" title="Eraser (E or 0)" aria-label="Eraser tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 20H7L3 16C2 15 2 13 3 12L13 2C14 1 16 1 17 2L22 7C23 8 23 10 22 11L14 19"></path>
+          </svg>
+          <span class="tool-badge">0</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Element Properties Panel Container -->
+    <aside id="properties-panel-container" class="ui-layer properties-panel-container">
+      <div class="properties-panel" role="region" aria-label="Element Properties">
+
+        <!-- Panel Header & Quick Actions -->
+        <div class="prop-header">
+          <span class="prop-header-title" id="prop-panel-title">Default Style</span>
+          <div class="prop-header-actions">
+            <button type="button" class="prop-action-btn" id="prop-action-copy" title="Copy selected (Ctrl+C)" aria-label="Copy">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+            <button type="button" class="prop-action-btn" id="prop-action-cut" title="Cut selected (Ctrl+X)" aria-label="Cut">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+              </svg>
+            </button>
+            <button type="button" class="prop-action-btn" id="prop-action-duplicate" title="Duplicate selected (Ctrl+D)" aria-label="Duplicate">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <rect x="3" y="3" width="13" height="13" rx="2" ry="2"></rect>
+              </svg>
+            </button>
+            <button type="button" class="prop-action-btn" id="prop-action-group" title="Group selected (Ctrl+G)" aria-label="Group">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+            </button>
+            <button type="button" class="prop-action-btn" id="prop-action-ungroup" title="Ungroup selected (Ctrl+Shift+G)" aria-label="Ungroup">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+            </button>
+            <button type="button" class="prop-action-btn prop-btn-danger" id="prop-action-delete" title="Delete selected (Delete)" aria-label="Delete">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. Stroke / Color Section -->
+        <div class="prop-group" id="prop-group-stroke">
+          <label class="prop-label" id="stroke-label">Stroke</label>
+          <div class="color-palette" data-property="strokeColor">
+            <button type="button" class="color-swatch active" data-color="#1e1e24" style="background-color: #1e1e24;" title="Charcoal Black"></button>
+            <button type="button" class="color-swatch" data-color="#e03131" style="background-color: #e03131;" title="Red"></button>
+            <button type="button" class="color-swatch" data-color="#2f9e44" style="background-color: #2f9e44;" title="Green"></button>
+            <button type="button" class="color-swatch" data-color="#1971c2" style="background-color: #1971c2;" title="Blue"></button>
+            <button type="button" class="color-swatch" data-color="#f08c00" style="background-color: #f08c00;" title="Orange"></button>
+            <button type="button" class="color-swatch" data-color="#9c36b5" style="background-color: #9c36b5;" title="Purple"></button>
+            
+            <!-- Custom Color Picker Wrapper -->
+            <label class="color-picker-label" title="Custom stroke color">
+              <input type="color" class="color-picker-input" id="stroke-color-picker" value="#1e1e24">
+              <span class="color-picker-icon">🎨</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 2. Background / Fill Color Section -->
+        <div class="prop-group" id="prop-group-bg">
+          <label class="prop-label">Background</label>
+          <div class="color-palette" data-property="backgroundColor">
+            <button type="button" class="color-swatch swatch-transparent active" data-color="transparent" title="Transparent">
+              <span class="swatch-slash"></span>
+            </button>
+            <button type="button" class="color-swatch" data-color="#ffc9c9" style="background-color: #ffc9c9;" title="Light Red"></button>
+            <button type="button" class="color-swatch" data-color="#b2f2bb" style="background-color: #b2f2bb;" title="Light Green"></button>
+            <button type="button" class="color-swatch" data-color="#a5d8ff" style="background-color: #a5d8ff;" title="Light Blue"></button>
+            <button type="button" class="color-swatch" data-color="#ffec99" style="background-color: #ffec99;" title="Light Yellow"></button>
+            <button type="button" class="color-swatch" data-color="#ececfb" style="background-color: #ececfb;" title="Lavender"></button>
+
+            <!-- Custom Color Picker Wrapper -->
+            <label class="color-picker-label" title="Custom background color">
+              <input type="color" class="color-picker-input" id="bg-color-picker" value="#ffffff">
+              <span class="color-picker-icon">🎨</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 3. Fill Style Section -->
+        <div class="prop-group" id="prop-group-fill-style">
+          <label class="prop-label">Fill Style</label>
+          <div class="button-group" data-property="fillStyle">
+            <button type="button" class="prop-btn active" data-value="solid" title="Solid fill">
+              <span class="icon-text">Solid</span>
+            </button>
+            <button type="button" class="prop-btn" data-value="semi" title="Semi-transparent tint">
+              <span class="icon-text">Tint</span>
+            </button>
+            <button type="button" class="prop-btn" data-value="transparent" title="Outline only">
+              <span class="icon-text">None</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Stroke Width Section -->
+        <div class="prop-group" id="prop-group-stroke-width">
+          <label class="prop-label">Stroke Width</label>
+          <div class="button-group" data-property="strokeWidth">
+            <button type="button" class="prop-btn" data-value="1" title="Thin (1px)">
+              <span class="stroke-preview stroke-thin"></span>
+            </button>
+            <button type="button" class="prop-btn active" data-value="2" title="Medium (2px)">
+              <span class="stroke-preview stroke-medium"></span>
+            </button>
+            <button type="button" class="prop-btn" data-value="4" title="Bold (4px)">
+              <span class="stroke-preview stroke-bold"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. Stroke Style Section -->
+        <div class="prop-group" id="prop-group-stroke-style">
+          <label class="prop-label">Stroke Style</label>
+          <div class="button-group" data-property="strokeStyle">
+            <button type="button" class="prop-btn active" data-value="solid" title="Solid">
+              <span class="dash-preview dash-solid"></span>
+            </button>
+            <button type="button" class="prop-btn" data-value="dashed" title="Dashed">
+              <span class="dash-preview dash-dashed"></span>
+            </button>
+            <button type="button" class="prop-btn" data-value="dotted" title="Dotted">
+              <span class="dash-preview dash-dotted"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 6. Sloppiness / Roughness Section -->
+        <div class="prop-group" id="prop-group-roughness">
+          <label class="prop-label">Sloppiness</label>
+          <div class="button-group" data-property="roughness">
+            <button type="button" class="prop-btn" data-value="0" title="Architect (Clean & Straight)">
+              <span class="icon-text">Architect</span>
+            </button>
+            <button type="button" class="prop-btn active" data-value="1" title="Artist (Hand-drawn)">
+              <span class="icon-text">Artist</span>
+            </button>
+            <button type="button" class="prop-btn" data-value="2" title="Cartoonist (Wobbly)">
+              <span class="icon-text">Cartoonist</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 7. Text-Specific Options (Font Family, Font Size, Text Align) -->
+        <div class="prop-text-container" id="prop-group-text" style="display: none;">
+          <div class="prop-separator"></div>
+
+          <!-- Font Family -->
+          <div class="prop-group">
+            <label class="prop-label">Font Family</label>
+            <div class="button-group" data-property="fontFamily">
+              <button type="button" class="prop-btn active" data-value="1" title="Hand-drawn (Caveat)">
+                <span class="font-preview font-hand">Hand</span>
+              </button>
+              <button type="button" class="prop-btn" data-value="2" title="Sans-Serif (Inter)">
+                <span class="font-preview font-sans">Sans</span>
+              </button>
+              <button type="button" class="prop-btn" data-value="3" title="Monospace (Courier)">
+                <span class="font-preview font-mono">Code</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Font Size -->
+          <div class="prop-group">
+            <label class="prop-label">Font Size</label>
+            <div class="button-group" data-property="fontSize">
+              <button type="button" class="prop-btn" data-value="16" title="Small (16px)">S</button>
+              <button type="button" class="prop-btn active" data-value="20" title="Medium (20px)">M</button>
+              <button type="button" class="prop-btn" data-value="28" title="Large (28px)">L</button>
+              <button type="button" class="prop-btn" data-value="36" title="Extra Large (36px)">XL</button>
+            </div>
+          </div>
+
+          <!-- Text Alignment -->
+          <div class="prop-group">
+            <label class="prop-label">Text Align</label>
+            <div class="button-group" data-property="textAlign">
+              <button type="button" class="prop-btn active" data-value="left" title="Align Left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>
+              </button>
+              <button type="button" class="prop-btn" data-value="center" title="Align Center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line></svg>
+              </button>
+              <button type="button" class="prop-btn" data-value="right" title="Align Right">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. Opacity Slider Section -->
+        <div class="prop-group" id="prop-group-opacity">
+          <div class="prop-slider-header">
+            <label class="prop-label">Opacity</label>
+            <span class="prop-value-badge" id="opacity-value-label">100%</span>
+          </div>
+          <input type="range" class="prop-slider" id="opacity-slider" min="10" max="100" step="5" value="100">
+        </div>
+
+        <!-- 9. Layer Order Section (Active when elements are selected) -->
+        <div class="prop-group" id="prop-group-layers" style="display: none;">
+          <div class="prop-separator"></div>
+          <label class="prop-label">Layers</label>
+          <div class="button-group" id="layer-actions-group">
+            <button type="button" class="prop-btn" id="btn-layer-send-back" title="Send to back (Ctrl+Shift+[)" aria-label="Send to back">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="7 13 12 18 17 13"></polyline>
+                <polyline points="7 6 12 11 17 6"></polyline>
+              </svg>
+            </button>
+            <button type="button" class="prop-btn" id="btn-layer-send-backward" title="Send backward (Ctrl+[)" aria-label="Send backward">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <button type="button" class="prop-btn" id="btn-layer-bring-forward" title="Bring forward (Ctrl+])" aria-label="Bring forward">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </button>
+            <button type="button" class="prop-btn" id="btn-layer-bring-front" title="Bring to front (Ctrl+Shift+])" aria-label="Bring to front">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 11 12 6 7 11"></polyline>
+                <polyline points="17 18 12 13 7 18"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- Main Workspace Hosting Both Canvases -->
+    <main id="workspace" class="workspace">
+      <div id="canvas-container" class="canvas-container">
+        <!-- Canvas 1: Static Drawing Canvas (Committed elements, grid, scene background) -->
+        <canvas id="static-canvas"></canvas>
+
+        <!-- Canvas 2: Interactive Overlay Canvas (Draft previews, selection box, resize handles) -->
+        <canvas id="interactive-canvas"></canvas>
+      </div>
+    </main>
+
+    <!-- Bottom-Left Zoom and History Controls Container -->
+    <div id="zoom-controls-container" class="ui-layer zoom-controls-container">
+      <div class="zoom-controls" role="toolbar" aria-label="Zoom and History Controls">
+        <!-- Undo Button -->
+        <button type="button" class="zoom-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 14 4 9 9 4"></polyline>
+            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+          </svg>
+        </button>
+
+        <!-- Redo Button -->
+        <button type="button" class="zoom-btn" id="btn-redo" title="Redo (Ctrl+Y or Ctrl+Shift+Z)" aria-label="Redo" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 14 20 9 15 4"></polyline>
+            <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
+          </svg>
+        </button>
+
+        <!-- Separator -->
+        <div class="zoom-separator"></div>
+
+        <!-- Zoom Out Button -->
+        <button type="button" class="zoom-btn" id="zoom-out-btn" title="Zoom out (Ctrl+-)" aria-label="Zoom out">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+
+        <!-- Zoom Percentage / Reset Button -->
+        <button type="button" class="zoom-value-btn" id="zoom-reset-btn" title="Reset zoom to 100% (Ctrl+0)" aria-label="Reset zoom">
+          <span id="zoom-value-label">100%</span>
+        </button>
+
+        <!-- Zoom In Button -->
+        <button type="button" class="zoom-btn" id="zoom-in-btn" title="Zoom in (Ctrl++)" aria-label="Zoom in">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+
+        <!-- Separator -->
+        <div class="zoom-separator"></div>
+
+        <!-- Grid Mode Toggle Button -->
+        <button type="button" class="zoom-btn active" id="btn-grid" title="Toggle grid mode (Ctrl+')" aria-label="Toggle grid">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="3" y1="15" x2="21" y2="15"></line>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom-Right Status Bar Container -->
+    <footer id="status-bar-container" class="ui-layer status-bar-container">
+      <div class="status-bar" role="status" aria-live="polite">
+        <!-- Auto-Save Persistence Status -->
+        <div class="status-save-group" id="status-save-group" title="Auto-saved to your browser's local storage">
+          <span class="status-icon" id="status-save-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 16.9A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>
+              <polyline points="9 11 12 14 22 4"></polyline>
+            </svg>
+          </span>
+          <span class="status-text" id="status-save-text">Saved</span>
+        </div>
+
+        <div class="status-divider"></div>
+
+        <!-- Scene Elements / Selection Metrics -->
+        <div class="status-metrics-group" id="status-metrics-group">
+          <span class="status-metrics-text" id="status-metrics-text">0 elements</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Context Menu Overlay Container -->
+    <div id="context-menu-container" class="ui-layer context-menu-container">
+      <div class="context-menu" id="canvas-context-menu" role="menu" aria-label="Element Actions" style="display: none;">
+        <!-- Copy -->
+        <button type="button" class="context-menu-item" data-action="copy" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </span>
+            <span>Copy</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+C</span>
+        </button>
+
+        <!-- Cut -->
+        <button type="button" class="context-menu-item" data-action="cut" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+              </svg>
+            </span>
+            <span>Cut</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+X</span>
+        </button>
+
+        <!-- Paste -->
+        <button type="button" class="context-menu-item" data-action="paste" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              </svg>
+            </span>
+            <span>Paste</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+V</span>
+        </button>
+
+        <!-- Duplicate -->
+        <button type="button" class="context-menu-item" data-action="duplicate" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <rect x="3" y="3" width="13" height="13" rx="2" ry="2"></rect>
+              </svg>
+            </span>
+            <span>Duplicate</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+D</span>
+        </button>
+
+        <!-- Group Selection -->
+        <button type="button" class="context-menu-item" data-action="group" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+            </span>
+            <span>Group selection</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+G</span>
+        </button>
+
+        <!-- Ungroup Selection -->
+        <button type="button" class="context-menu-item" data-action="ungroup" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+            </span>
+            <span>Ungroup selection</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+Shift+G</span>
+        </button>
+
+        <div class="context-menu-separator"></div>
+
+        <!-- Bring Forward -->
+        <button type="button" class="context-menu-item" data-action="bringForward" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </span>
+            <span>Bring forward</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+]</span>
+        </button>
+
+        <!-- Bring to Front -->
+        <button type="button" class="context-menu-item" data-action="bringToFront" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 11 12 6 7 11"></polyline>
+                <polyline points="17 18 12 13 7 18"></polyline>
+              </svg>
+            </span>
+            <span>Bring to front</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+Shift+]</span>
+        </button>
+
+        <!-- Send Backward -->
+        <button type="button" class="context-menu-item" data-action="sendBackward" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </span>
+            <span>Send backward</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+[</span>
+        </button>
+
+        <!-- Send to Back -->
+        <button type="button" class="context-menu-item" data-action="sendToBack" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="7 13 12 18 17 13"></polyline>
+                <polyline points="7 6 12 11 17 6"></polyline>
+              </svg>
+            </span>
+            <span>Send to back</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+Shift+[</span>
+        </button>
+
+        <div class="context-menu-separator"></div>
+
+        <!-- Delete -->
+        <button type="button" class="context-menu-item item-danger" data-action="delete" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </span>
+            <span>Delete</span>
+          </div>
+          <span class="context-menu-shortcut">Del</span>
+        </button>
+
+        <div class="context-menu-separator"></div>
+
+        <!-- Toggle Grid -->
+        <button type="button" class="context-menu-item" data-action="toggleGrid" role="menuitem">
+          <div class="context-menu-label-group">
+            <span class="context-menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="3" y1="15" x2="21" y2="15"></line>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+                <line x1="15" y1="3" x2="15" y2="21"></line>
+              </svg>
+            </span>
+            <span>Toggle grid</span>
+          </div>
+          <span class="context-menu-shortcut">Ctrl+'</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Dialogs Container -->
+    <div id="dialogs-container" class="ui-layer dialogs-container" style="display: none;">
+      <div class="modal-backdrop" id="export-dialog-backdrop">
+        <div class="export-dialog" role="dialog" aria-modal="true" aria-labelledby="export-dialog-title">
+          <!-- Header -->
+          <div class="dialog-header">
+            <h2 class="dialog-title" id="export-dialog-title">Export image</h2>
+            <button type="button" class="dialog-close-btn" id="btn-close-export" aria-label="Close dialog">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="dialog-body">
+            <!-- Live Image Preview Card -->
+            <div class="export-preview-container">
+              <div class="export-preview-card" id="export-preview-card">
+                <img id="export-preview-img" alt="Export preview" src="">
+              </div>
+            </div>
+
+            <!-- Settings Panel -->
+            <div class="export-settings">
+              <!-- 1. Format Selection (PNG vs SVG) -->
+              <div class="export-setting-group">
+                <label class="setting-label">Format</label>
+                <div class="segmented-control" id="export-format-control">
+                  <button type="button" class="segment-btn active" data-format="png">PNG</button>
+                  <button type="button" class="segment-btn" data-format="svg">SVG</button>
+                </div>
+              </div>
+
+              <!-- 2. Scale Selection (1x, 2x, 3x) -->
+              <div class="export-setting-group" id="group-export-scale">
+                <label class="setting-label">Scale</label>
+                <div class="segmented-control" id="export-scale-control">
+                  <button type="button" class="segment-btn" data-scale="1">1x</button>
+                  <button type="button" class="segment-btn active" data-scale="2">2x</button>
+                  <button type="button" class="segment-btn" data-scale="3">3x</button>
+                </div>
+              </div>
+
+              <!-- 3. Export Options Checkboxes -->
+              <div class="export-setting-group">
+                <label class="setting-label">Options</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="chk-export-bg" checked>
+                    <span>Include canvas background</span>
+                  </label>
+                  <label class="checkbox-label" id="lbl-export-selected-only">
+                    <input type="checkbox" id="chk-export-selected-only">
+                    <span>Export selected elements only</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer Actions -->
+          <div class="dialog-footer">
+            <button type="button" class="dialog-btn btn-secondary" id="btn-export-copy-clipboard">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span id="btn-export-copy-label">Copy to clipboard</span>
+            </button>
+
+            <button type="button" class="dialog-btn btn-primary" id="btn-export-download">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span id="btn-export-download-label">Download PNG</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Application Entry Point (Native ES Module) -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+/* ==========================================================================
+   Element Properties Panel
+   ========================================================================== */
+
+.properties-panel {
+  width: 224px;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--font-ui);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.properties-panel::-webkit-scrollbar { width: 4px; }
+.properties-panel::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 999px;
+}
+.properties-panel::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-muted);
+}
+
+.prop-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@keyframes panelSlideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Panel Header ── */
+.prop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* "Default Style" — mixed case, normal weight, not screaming uppercase */
+.prop-header-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text-secondary);
+}
+
+.prop-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.prop-action-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.prop-action-btn:hover {
+  background-color: var(--color-bg-button);
+  color: var(--color-text-main);
+}
+
+.prop-action-btn.prop-btn-danger:hover {
+  background-color: #fdecea;
+  color: var(--color-error);
+}
+
+/* ── Section Groups ── */
+.prop-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Labels: mixed case, medium weight — not uppercase shout */
+.prop-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  letter-spacing: 0;
+}
+
+.prop-separator {
+  height: 1px;
+  background-color: var(--color-border-subtle);
+  margin: 2px 0 6px;
+}
+
+/* ── Color Palettes ── */
+.color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: transform 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.color-swatch:hover {
+  transform: scale(1.14);
+  z-index: 2;
+}
+
+.color-swatch:active {
+  transform: scale(0.93);
+}
+
+/* Active state: green ring — intentional use of the brand color */
+.color-swatch.active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(40, 116, 91, 0.18);
+  transform: scale(1.08);
+  z-index: 1;
+}
+
+/* Transparent swatch */
+.swatch-transparent {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #ddd 25%, transparent 25%),
+    linear-gradient(-45deg, #ddd 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ddd 75%),
+    linear-gradient(-45deg, transparent 75%, #ddd 75%);
+  background-size: 7px 7px;
+  background-position: 0 0, 0 3.5px, 3.5px -3.5px, -3.5px 0px;
+  overflow: hidden;
+}
+
+.swatch-slash {
+  position: absolute;
+  top: 50%;
+  left: -20%;
+  width: 140%;
+  height: 1.5px;
+  background-color: #e03131;
+  transform: rotate(45deg);
+}
+
+/* Custom color picker */
+.color-picker-label {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px dashed var(--color-border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: var(--color-bg-button);
+  transition: border-color 0.1s, background 0.1s;
+  flex-shrink: 0;
+}
+
+.color-picker-label:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.color-picker-icon { font-size: 10px; pointer-events: none; }
+
+.color-picker-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.color-picker-label.active {
+  border-style: solid;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(40, 116, 91, 0.2);
+}
+
+.color-picker-label.has-custom-color .color-picker-icon {
+  opacity: 0;
+}
+
+/* ── Button Groups (segmented controls) ── */
+/* Thinner, more refined — not a thick gray pill */
+.button-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background-color: var(--color-bg-button);
+  padding: 2px;
+  border-radius: var(--radius-button);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.prop-btn {
+  flex: 1;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s ease, color 0.1s ease, box-shadow 0.1s ease;
+  padding: 0 6px;
+  font-family: var(--font-ui);
+}
+
+.prop-btn:hover {
+  background-color: var(--color-bg-button-hover);
+  color: var(--color-text-main);
+}
+
+/* Active: white chip with subtle lift — green text as a nod to the brand */
+.prop-btn.active {
+  background-color: var(--color-bg-panel);
+  color: var(--color-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.09), 0 0 0 1px var(--color-border);
+}
+
+.icon-text { font-size: 11px; }
+
+/* ── Stroke Width Previews ── */
+.stroke-preview {
+  width: 22px;
+  background-color: var(--color-text-secondary);
+  border-radius: 2px;
+}
+.prop-btn.active .stroke-preview { background-color: var(--color-primary); }
+.stroke-thin   { height: 1.5px; }
+.stroke-medium { height: 2.5px; }
+.stroke-bold   { height: 4px; }
+
+/* ── Dash Style Previews ── */
+.dash-preview { width: 22px; height: 2px; }
+
+.dash-solid  { background-color: var(--color-text-secondary); }
+.dash-dashed { background: repeating-linear-gradient(to right, var(--color-text-secondary) 0, var(--color-text-secondary) 4px, transparent 4px, transparent 7px); }
+.dash-dotted { background: repeating-linear-gradient(to right, var(--color-text-secondary) 0, var(--color-text-secondary) 2px, transparent 2px, transparent 5px); }
+
+.prop-btn.active .dash-solid  { background-color: var(--color-primary); }
+.prop-btn.active .dash-dashed { background: repeating-linear-gradient(to right, var(--color-primary) 0, var(--color-primary) 4px, transparent 4px, transparent 7px); }
+.prop-btn.active .dash-dotted { background: repeating-linear-gradient(to right, var(--color-primary) 0, var(--color-primary) 2px, transparent 2px, transparent 5px); }
+
+/* ── Font Family Previews ── */
+.font-hand { font-family: var(--font-hand), 'Caveat', cursive; font-size: 13px; }
+.font-sans { font-family: var(--font-ui), sans-serif; font-size: 11px; }
+.font-mono { font-family: 'Courier New', monospace; font-size: 10.5px; }
+
+/* ── Opacity Slider ── */
+.prop-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.prop-value-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.prop-slider {
+  width: 100%;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--color-border);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* Thumb: outlined circle — refined, not a blob */
+.prop-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-bg-panel);
+  border: 2px solid var(--color-primary);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(40, 116, 91, 0.2);
+  transition: transform 0.1s ease;
+}
+
+.prop-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+.prop-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-bg-panel);
+  border: 2px solid var(--color-primary);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(40, 116, 91, 0.2);
+}
+
+/* ── Align & Distribute Rows ── */
+.align-actions-row {
+  display: grid !important;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+}
+
+.distribute-actions-row {
+  display: flex !important;
+  gap: 3px;
+}
+
+.align-actions-row .prop-btn,
+.distribute-actions-row .prop-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 3px;
+}

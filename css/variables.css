@@ -1,0 +1,64 @@
+/* ==========================================================================
+   Design Tokens — Forest Green palette, crafted not generated
+   ========================================================================== */
+
+:root {
+  /* Brand / Primary accent — Forest Green */
+  --color-primary:        #28745B;
+  --color-primary-hover:  #205D49;
+  --color-primary-active: #1A4D3C;
+  --color-primary-light:  rgba(40, 116, 91, 0.08);
+
+  /* Surfaces — slightly warmer off-whites, less sterile */
+  --color-bg-app:           #F0EDE8;
+  --color-bg-canvas:        #FAFAF8;
+  --color-bg-panel:         #FFFFFF;
+  --color-bg-panel-hover:   #F8F7F5;
+  --color-bg-button:        #F3F1EE;
+  --color-bg-button-hover:  #E9E6E1;
+  --color-bg-button-active: #DED9D2;
+
+  /* Borders — warmer tones, not purely cool gray */
+  --color-border:        #E3DFD9;
+  --color-border-subtle: #EDEAE5;
+  --color-border-strong: #CEC9C1;
+  --color-border-focus:  rgba(40, 116, 91, 0.2);
+
+  /* Text */
+  --color-text-main:      #1C1B19;
+  --color-text-secondary: #6B6760;
+  --color-text-muted:     #9E9B96;
+  --color-text-inverse:   #FFFFFF;
+
+  /* Selection */
+  --color-selection:        #28745B;
+  --color-selection-fill:   rgba(40, 116, 91, 0.08);
+  --color-selection-border: #A8CEBD;
+  --color-handle:           #FFFFFF;
+  --color-handle-border:    #28745B;
+  --color-grid:             #E8E4DE;
+
+  /* Semantic */
+  --color-error:   #C0392B;
+  --color-warning: #B76E00;
+  --color-success: #28745B;
+
+  /* Shadows — warmer, softer, less dramatic */
+  --shadow-panel:  0 2px 8px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-popup:  0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  /* Border Radii — slightly tighter, feels hand-picked */
+  --radius-panel:  8px;
+  --radius-button: 6px;
+  --radius-sm:     4px;
+  --radius-pill:   9999px;
+
+  /* Typography */
+  --font-ui:   'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-hand: 'Caveat', cursive, sans-serif;
+
+  /* Dimensions */
+  --topbar-height:  56px;
+  --toolbar-height: 48px;
+}
