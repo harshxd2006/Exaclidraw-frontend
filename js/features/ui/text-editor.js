@@ -19,6 +19,17 @@ let activeEditConfig = null;
 // Flag to prevent double-commit when blur triggers while programmatically destroying.
 let isCommitting = false;
 
+// Captures outside presses before the canvas begins its next gesture, ensuring
+// that clicking away always finishes the current text edit.
+let activeOutsidePointerHandler = null;
+
+function removeOutsidePointerHandler() {
+  if (activeOutsidePointerHandler) {
+    document.removeEventListener('pointerdown', activeOutsidePointerHandler, true);
+    activeOutsidePointerHandler = null;
+  }
+}
+
 // Returns true if the user is currently editing text inside the inline editor.
 export function isEditingText() {
   return activeTextarea !== null;
@@ -30,8 +41,10 @@ export function getEditingElementId() {
 }
 
 // Automatically recalculates and applies width and height to the active textarea.
+// The transparent textarea is exactly the rendered text size, just like Excalidraw's
+// inline editor. It has no border, padding, or visible background.
 function autoResizeEditor(textarea, fontSize, fontFamily, lineHeight, zoom) {
-  // Use a trailing non-breaking space if value ends with newline so height expands immediately.
+  // Use a trailing space if value ends with newline so height expands immediately.
   let text = textarea.value;
   if (!text) {
     text = ' ';
@@ -40,12 +53,15 @@ function autoResizeEditor(textarea, fontSize, fontFamily, lineHeight, zoom) {
   }
 
   const measured = measureText(text, fontSize, fontFamily, lineHeight);
-  const scaledWidth = measured.width * zoom;
+  const scaledWidth  = measured.width  * zoom;
   const scaledHeight = measured.height * zoom;
-  const minHeight = Math.ceil(fontSize * lineHeight * zoom);
+  const lineH = Math.ceil(fontSize * lineHeight * zoom);
 
-  textarea.style.width = `${Math.max(Math.ceil(scaledWidth) + 8, 48)}px`;
-  textarea.style.height = `${Math.max(Math.ceil(scaledHeight), minHeight)}px`;
+  const contentWidth = Math.max(Math.ceil(scaledWidth), Math.ceil(fontSize * zoom * 0.6));
+  const contentHeight = Math.max(Math.ceil(scaledHeight), lineH);
+
+  textarea.style.width = `${contentWidth}px`;
+  textarea.style.height = `${contentHeight}px`;
 }
 
 // Spawns the inline text editor at the given scene position or over an existing element.
@@ -91,11 +107,21 @@ export function startTextEditor({ sceneX = 0, sceneY = 0, existingElement = null
   const fontSize    = isLineLabel ? (existingElement.labelFontSize || 14)
                     : isEditingExisting ? (existingElement.fontSize || 20)
                     : (state.elementProperties.fontSize || 20);
-  const fontFamily  = isEditingExisting ? (existingElement.fontFamily || 1) : 1;
-  const lineHeight  = isEditingExisting ? (existingElement.lineHeight || 1.25) : 1.25;
+  const fontFamily  = isEditingExisting ? (existingElement.fontFamily || 1) : (state.elementProperties.fontFamily || 1);
+  const lineHeight  = isLineLabel ? 1.25
+                    : isEditingExisting ? (existingElement.lineHeight || 1.25)
+                    : (state.elementProperties.lineHeight || 1.25);
   const textAlign   = isLineLabel ? 'center'
-                    : isEditingExisting ? (existingElement.textAlign || 'left') : 'left';
-  const strokeColor = isEditingExisting ? (existingElement.strokeColor || '#1e1e24') : (state.elementProperties.strokeColor || '#1e1e24');
+                    : isEditingExisting ? (existingElement.textAlign || 'left') : (state.elementProperties.textAlign || 'left');
+  let strokeColor = isEditingExisting ? (existingElement.strokeColor || '#1e1e24') : (state.elementProperties.strokeColor || '#1e1e24');
+
+  // The light-theme default charcoal is unreadable on this app's dark canvas.
+  // Preserve every intentional custom colour, but use the dark-theme foreground
+  // when the untouched default is being edited or created in dark mode.
+  const isDarkTheme = document.documentElement.dataset.theme === 'dark';
+  if (isDarkTheme && strokeColor.toLowerCase() === '#1e1e24') {
+    strokeColor = '#eceae5';
+  }
 
   activeEditConfig = {
     sceneX: initialX,
@@ -123,6 +149,11 @@ export function startTextEditor({ sceneX = 0, sceneY = 0, existingElement = null
   textarea.spellcheck = false;
   textarea.autocomplete = 'off';
   textarea.autocapitalize = 'off';
+  textarea.setAttribute('autocorrect', 'off');
+  textarea.setAttribute('data-gramm', 'false');
+  textarea.setAttribute('data-gramm_editor', 'false');
+  textarea.setAttribute('data-enable-grammarly', 'false');
+  textarea.wrap = 'off';
 
   // Apply visual styling matching the target element and current viewport zoom.
   const scaledFontSize = Math.round(fontSize * zoom);
@@ -132,6 +163,19 @@ export function startTextEditor({ sceneX = 0, sceneY = 0, existingElement = null
   textarea.style.lineHeight = `${lineHeight}`;
   textarea.style.color = strokeColor;
   textarea.style.textAlign = textAlign;
+
+  // For new text elements with center/right alignment, the canvas will render
+  // text anchored at the clicked point. Use CSS transform so the textarea box
+  // expands symmetrically from that anchor instead of always growing rightward.
+  if (!isEditingExisting && !isLineLabel) {
+    if (textAlign === 'center') {
+      textarea.style.transformOrigin = 'top left';
+      textarea.style.transform = 'translateX(-50%)';
+    } else if (textAlign === 'right') {
+      textarea.style.transformOrigin = 'top left';
+      textarea.style.transform = 'translateX(-100%)';
+    }
+  }
 
   // Initial sizing.
   autoResizeEditor(textarea, fontSize, fontFamily, lineHeight, zoom);
@@ -160,6 +204,15 @@ export function startTextEditor({ sceneX = 0, sceneY = 0, existingElement = null
   // Append to container and capture focus.
   container.appendChild(textarea);
   activeTextarea = textarea;
+
+  // A canvas click does not always transfer focus before its pointer handler
+  // runs. Capture the press first so clicking anywhere outside writing commits.
+  activeOutsidePointerHandler = event => {
+    if (activeTextarea && !activeTextarea.contains(event.target)) {
+      commitTextEditor();
+    }
+  };
+  document.addEventListener('pointerdown', activeOutsidePointerHandler, true);
 
   // Select text if editing existing element; otherwise place caret at the end.
   setTimeout(() => {
@@ -206,14 +259,24 @@ export function commitTextEditor() {
           text: textValue,
           width: measured.width,
           height: measured.height,
+          strokeColor: config.strokeColor,
           isDeleted: false
         });
         setSelectedElementIds([config.existingElement.id]);
       }
     } else {
       // Create and commit a new text element.
+      // For center/right aligned text, config.sceneX is the anchor point, not the left edge.
+      // Adjust element.x so the text renders anchored at where the user clicked.
+      let elementX = config.sceneX;
+      if (config.textAlign === 'center') {
+        elementX = config.sceneX - measured.width / 2;
+      } else if (config.textAlign === 'right') {
+        elementX = config.sceneX - measured.width;
+      }
+
       const newElement = createElement('text', {
-        x: config.sceneX,
+        x: elementX,
         y: config.sceneY,
         width: measured.width,
         height: measured.height,
@@ -244,6 +307,7 @@ export function commitTextEditor() {
   }
 
   // Clean up and remove the DOM element.
+  removeOutsidePointerHandler();
   if (activeTextarea.parentNode) {
     activeTextarea.parentNode.removeChild(activeTextarea);
   }
@@ -259,7 +323,11 @@ export function cancelTextEditor() {
     return;
   }
 
+  // Track whether we were creating a new element (not editing existing) before cleanup.
+  const wasNewElement = activeEditConfig && !activeEditConfig.existingElement;
+
   // Remove the textarea from the DOM.
+  removeOutsidePointerHandler();
   if (activeTextarea.parentNode) {
     activeTextarea.parentNode.removeChild(activeTextarea);
   }
@@ -267,4 +335,9 @@ export function cancelTextEditor() {
   activeTextarea = null;
   activeEditConfig = null;
   isCommitting = false;
+
+  // If cancelling a brand-new text element (not editing existing), switch back to selection.
+  if (wasNewElement) {
+    onShapeCommitted();
+  }
 }

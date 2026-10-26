@@ -12,7 +12,12 @@ export const DEFAULT_ELEMENT_PROPERTIES = {
   strokeStyle: 'solid',         // Border dash style: 'solid' | 'dashed' | 'dotted'
   roughness: 1,                 // Sloppiness: 0 (architect/clean), 1 (artist), 2 (cartoonist)
   opacity: 100,                 // Transparency: 0 to 100
-  angle: 0                      // Rotation in radians (0 = unrotated)
+  angle: 0,                     // Rotation in radians (0 = unrotated)
+  // Text-specific defaults (applied when creating text elements)
+  fontSize: 20,                 // Font size in scene pixels
+  fontFamily: 1,                // 1 = Virgil/Caveat (hand), 2 = Inter (sans), 3 = Courier (mono)
+  lineHeight: 1.25,             // Unitless CSS line-height multiplier
+  textAlign: 'left'             // Horizontal text alignment: 'left' | 'center' | 'right'
 };
 
 // Validates whether an object has the minimal required properties to be an element.

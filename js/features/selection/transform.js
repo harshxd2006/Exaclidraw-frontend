@@ -339,9 +339,21 @@ export function resizeElement(element, handle, dx, dy, initialBounds, options = 
     ]);
   }
 
-  // 3c. Text elements: scale fontSize proportionally
+  // 3c. Text elements: resize by scaling their font and then remeasuring.
+  // Text has no independent wrapping width, so horizontal handles must scale the
+  // font too; otherwise east/west handles appear to do nothing.
   if (element.type === 'text') {
-    const scaleFactor = Math.abs(newHeight) / Math.max(Math.abs(initialBounds.height), 1);
+    const scaleX = Math.abs(newWidth) / Math.max(Math.abs(initialBounds.width), 1);
+    const scaleY = Math.abs(newHeight) / Math.max(Math.abs(initialBounds.height), 1);
+    let scaleFactor;
+    if (['e', 'w'].includes(handle)) {
+      scaleFactor = scaleX;
+    } else if (['n', 's'].includes(handle)) {
+      scaleFactor = scaleY;
+    } else {
+      // Corner drags use the axis the user moved proportionally farther.
+      scaleFactor = Math.abs(scaleX - 1) >= Math.abs(scaleY - 1) ? scaleX : scaleY;
+    }
     const newFontSize = Math.max(Math.round((initialBounds.fontSize || 20) * scaleFactor), 10);
     updates.fontSize = newFontSize;
 
@@ -354,6 +366,20 @@ export function resizeElement(element, handle, dx, dy, initialBounds, options = 
     );
     updates.width = measured.width;
     updates.height = measured.height;
+
+    // Keep the opposite edge fixed when resizing from a left or top handle.
+    if (['nw', 'w', 'sw'].includes(handle)) {
+      const rightEdge = initialBounds.x + initialBounds.width;
+      updates.x = rightEdge - measured.width;
+    } else {
+      updates.x = newX;
+    }
+    if (['nw', 'n', 'ne'].includes(handle)) {
+      const bottomEdge = initialBounds.y + initialBounds.height;
+      updates.y = bottomEdge - measured.height;
+    } else {
+      updates.y = newY;
+    }
   }
 
   return updates;

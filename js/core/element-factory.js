@@ -45,6 +45,7 @@ export function createElement(type, options = {}) {
     element.text = options.text || '';
     element.fontSize = options.fontSize || 20;
     element.fontFamily = options.fontFamily || 1;     // 1 = Virgil/Caveat, 2 = Helvetica, 3 = Cascadia
+    element.lineHeight = options.lineHeight || 1.25;  // CSS-style unitless line-height multiplier
     element.textAlign = options.textAlign || 'left';
   }
 

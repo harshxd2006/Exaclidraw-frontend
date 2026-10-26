@@ -1,27 +1,45 @@
 /* ==========================================================================
    Canvas Inline Text Editor Stylesheet
    Styles the floating textarea used for inline text creation and editing.
-  
    ========================================================================== */
 
 .canvas-text-editor {
   position: absolute;
   z-index: 25;
-  box-sizing: content-box;
+
+  /* Use border-box so padding doesn't break the measured width/height */
+  box-sizing: border-box;
+
+  /* Match Excalidraw: edit text directly on the canvas without a visible box. */
   padding: 0;
   margin: 0;
-  border: 1px dashed var(--color-primary);
-  border-radius: 2px;
+
+  border: 0;
+  border-radius: 0;
   background: transparent;
+  box-shadow: none;
+
   outline: none;
   resize: none;
+
+  /* Allow content to grow but never clip text mid-character */
   overflow: hidden;
+
+  /* Preserve newlines; don't wrap (canvas text doesn't wrap either) */
   white-space: pre;
   tab-size: 2;
+
+  /* Caret uses the brand accent so it's always visible */
   caret-color: var(--color-primary);
   cursor: text;
+
+  /* Dimensions follow the measured text, with no visible editor chrome. */
+  min-width: 0;
+  min-height: 0;
+
   transform-origin: top left;
   user-select: text;
   -webkit-user-select: text;
   pointer-events: auto;
+
 }
