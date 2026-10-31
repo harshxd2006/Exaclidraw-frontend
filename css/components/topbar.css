@@ -150,3 +150,134 @@
   background-color: var(--color-border-subtle);
   margin: 3px 0;
 }
+
+
+/* Online Collaborators */
+.collaborators-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    margin-right: 12px;
+
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+
+    color: var(--color-text-main);
+    font-size: 12px;
+}
+
+/* Online users count */
+#collaborators-count {
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--color-text-main);
+}
+
+/* Avatar container */
+.collaborators-list {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Individual avatar */
+.collaborator-avatar {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+
+    border: 1px solid var(--color-border);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* Collaborators wrapper */
+.collaborators-wrapper {
+    position: relative;
+}
+
+/* Collaborators toggle button */
+.collaborators-container {
+    cursor: pointer;
+    font-family: inherit;
+}
+
+/* Hover effect */
+.collaborators-container:hover {
+    background-color: var(--color-bg-panel-hover);
+}
+
+/* Collaborators dropdown */
+.collaborators-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+
+    width: 230px;
+    padding: 12px;
+
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+
+    box-shadow: var(--shadow-popup);
+
+    color: var(--color-text-main);
+    z-index: 1000;
+}
+
+/* Important: Keep the panel hidden when requested */
+.collaborators-panel[hidden] {
+    display: none;
+}
+
+/* Dropdown heading */
+.collaborators-panel-header {
+    font-size: 13px;
+    font-weight: 700;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* List of collaborators */
+.collaborators-panel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 10px;
+}
+
+/* Individual collaborator row */
+.collaborator-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 7px;
+    border-radius: 6px;
+
+    color: var(--color-text-main);
+}
+
+/* Small online indicator */
+.collaborator-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--color-success);
+}
+
+/* Collaborator name */
+.collaborator-name {
+    font-size: 13px;
+}

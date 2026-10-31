@@ -53,6 +53,12 @@ import { setSnapGuides, clearSnapGuides } from './features/selection/snap-overla
 import { initFloatingToolbar } from './features/ui/floating-toolbar.js';
 import { initLayersPanel } from './features/ui/layers-panel.js';
 
+import {
+    connectDrawingRoom,
+    sendDrawingUpdate,
+    disconnectDrawingRoom
+} from './features/api/drawing-sync.js';
+
 // Interaction tracking variables for drawing, moving elements, marquee selection, resizing, and panning.
 let isDrawing = false;
 let isDraggingElements = false;
@@ -1134,6 +1140,222 @@ async function initializeApp() {
 
   // Initial paint (subscribers are registered; scene was loaded before first notify)
   notify();
+
+  let isApplyingRemoteUpdate = false;
+
+  let previousElements = JSON.stringify(getState().elements);
+
+  const roomId = new URLSearchParams(window.location.search)
+    .get("room") || "demo-room";
+
+    let currentUserName = localStorage.getItem("exacollab-user-name");
+
+if (!currentUserName) {
+    currentUserName = prompt("Enter your display name:")?.trim() || "Guest";
+
+    localStorage.setItem("exacollab-user-name", currentUserName);
+
+
+    
+}
+
+
+// Get collaborators UI elements.
+const collaboratorsToggle = document.getElementById("collaborators-toggle");
+const collaboratorsPanel = document.getElementById("collaborators-panel");
+const collaboratorsWrapper = document.querySelector(".collaborators-wrapper");
+
+// Open and close the collaborators panel.
+collaboratorsToggle.addEventListener("click", (event) => {
+
+    event.stopPropagation();
+
+    const isOpen = collaboratorsToggle.getAttribute("aria-expanded") === "true";
+
+    collaboratorsPanel.hidden = isOpen;
+
+    collaboratorsToggle.setAttribute(
+        "aria-expanded",
+        String(!isOpen)
+    );
+});
+
+// Close when clicking outside.
+document.addEventListener("click", (event) => {
+
+    if (!collaboratorsWrapper.contains(event.target)) {
+
+        collaboratorsPanel.hidden = true;
+
+        collaboratorsToggle.setAttribute("aria-expanded", "false");
+    }
+});
+
+// Close when pressing Escape.
+document.addEventListener("keydown", (event) => {
+
+    if (event.key === "Escape") {
+
+        collaboratorsPanel.hidden = true;
+
+        collaboratorsToggle.setAttribute("aria-expanded", "false");
+    }
+});
+// Connect to the drawing room.
+connectDrawingRoom(
+
+    roomId,
+
+    // 1. Handles received drawing updates.
+    (message) => {
+
+        console.log("[Collaboration] Received drawing update:", message);
+
+        if (!Array.isArray(message.elements)) {
+            return;
+        }
+
+        const state = getState();
+
+        isApplyingRemoteUpdate = true;
+
+        try {
+
+            state.elements = message.elements;
+
+            const receivedIds = new Set(
+                message.elements.map(element => element.id)
+            );
+
+            for (const id of Object.keys(state.selectedElementIds)) {
+                if (!receivedIds.has(id)) {
+                    delete state.selectedElementIds[id];
+                }
+            }
+
+            notify();
+
+        } finally {
+
+            previousElements = JSON.stringify(state.elements);
+            isApplyingRemoteUpdate = false;
+
+        }
+    },
+
+    // 2. Pass the current user's name.
+    currentUserName,
+
+    // 3. Handle online-user updates.
+    (usernames) => {
+
+    console.log("[Presence] Current online users:", usernames);
+
+   const countElement = document.getElementById("collaborators-count");
+    const avatarList = document.getElementById("collaborators-list");
+    const panelList = document.getElementById("collaborators-panel-list");
+
+    // Update online count.
+    countElement.textContent = `${usernames.length} online`;
+
+    // Clear previous avatars and names.
+    avatarList.innerHTML = "";
+    panelList.innerHTML = "";
+
+    // Create an avatar and a name entry for each session.
+    usernames.forEach((username) => {
+
+        const name = String(username || "Guest");
+
+        // Create avatar.
+        const avatar = document.createElement("div");
+        avatar.className = "collaborator-avatar";
+        avatar.textContent = name.charAt(0).toUpperCase();
+        avatar.title = name;
+
+        avatarList.appendChild(avatar);
+
+        // Create collaborator row.
+        const row = document.createElement("div");
+        row.className = "collaborator-row";
+
+        const status = document.createElement("span");
+        status.className = "collaborator-status";
+
+        const nameElement = document.createElement("span");
+        nameElement.className = "collaborator-name";
+        nameElement.textContent = name;
+
+        row.appendChild(status);
+        row.appendChild(nameElement);
+
+        panelList.appendChild(row);
+    });
+}
+
+);
+
+let syncTimer = null;
+let pendingElements = null;
+
+
+// Listen for local state changes.
+subscribe((state) => {
+
+    const currentElements = JSON.stringify(state.elements);
+
+    if (currentElements === previousElements) {
+        return;
+    }
+
+    previousElements = currentElements;
+
+    // Don't rebroadcast changes received from another user.
+    if (isApplyingRemoteUpdate) {
+        return;
+    }
+
+    console.log("[Collaboration] Sending drawing update:", state.elements);
+
+    // Keep the latest drawing state waiting to be sent.
+    pendingElements = JSON.parse(currentElements);
+
+    // Send at most one update every 100 milliseconds.
+    if (syncTimer !== null) {
+        return;
+    }
+
+    syncTimer = setTimeout(() => {
+
+        syncTimer = null;
+
+        const elementsToSend = pendingElements;
+
+        pendingElements = null;
+
+        if (elementsToSend) {
+            sendDrawingUpdate(currentUserName, elementsToSend);
+        }
+
+    }, 100);
+
+});
+window.sendTestDrawingUpdate = () => {
+
+    const testRectangle = createElement("rectangle", {
+        x: 100,
+        y: 100,
+        width: 150,
+        height: 80,
+
+        strokeColor: "#ff0000",
+        backgroundColor: "#ffcccc",
+        fillStyle: "solid",
+        strokeWidth: 3
+    });
+
+    sendDrawingUpdate("Harsh", [testRectangle]);
+};
 
   console.log('[Excalidraw Vanilla] Stage 19 Arrow Labels & Element Locking initialized successfully.');
 }

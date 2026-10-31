@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ExaCollab WebSocket Test</title>
+
+    <!-- Lets our JavaScript import the STOMP client by package name -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@stomp/stompjs": "https://ga.jspm.io/npm:@stomp/stompjs@7.3.0/esm6/index.js"
+        }
+    }
+    </script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 650px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+        }
+
+        input {
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        #messages {
+            border: 1px solid #ccc;
+            min-height: 180px;
+            padding: 12px;
+            margin-top: 15px;
+            overflow-wrap: anywhere;
+        }
+
+        #status {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ExaCollab WebSocket Test</h1>
+
+    <p>
+        Connection status:
+        <span id="status">Disconnected</span>
+    </p>
+
+    <label for="roomId">Room ID</label>
+    <input id="roomId" value="demo-room">
+
+    <label for="sender">Your name</label>
+    <input id="sender" value="Harsh">
+
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+
+    <hr>
+
+    <label for="messageInput">Message</label>
+    <input id="messageInput" placeholder="Type a message">
+
+    <button id="sendBtn" disabled>Send message</button>
+
+    <h2>Received messages</h2>
+    <div id="messages"></div>
+
+    <script type="module" src="./js/features/api/websocket-test.js"></script>
+</body>
+</html>

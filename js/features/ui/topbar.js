@@ -16,6 +16,11 @@ import { downloadJson, loadFromJsonString } from '../export/export-json.js';
 import { openExportDialog } from './export-dialog.js';
 import { clearLocalStorage, saveToLocalStorage } from '../storage/local-storage.js';
 import { syncPropertiesPanelUI } from './properties-panel.js';
+import {
+    createCloudDrawing,
+    updateCloudDrawing,
+      getCloudDrawing
+} from '../api/drawings-api.js';
 
 // ── Dark / Light Theme ───────────────────────────────────────────────────────
 const THEME_KEY = 'excalidraw-theme';
@@ -146,6 +151,14 @@ export function openLoadFileDialog() {
 export function saveCanvasToFile() {
   downloadJson(getState());
 }
+const CLOUD_DRAWING_ID_KEY = 'exacollab-current-cloud-drawing-id';
+const CLOUD_DRAWING_TITLE_KEY = 'exacollab-current-cloud-drawing-title';
+
+let activeCloudDrawingId =
+    localStorage.getItem(CLOUD_DRAWING_ID_KEY);
+
+let activeCloudDrawingTitle =
+    localStorage.getItem(CLOUD_DRAWING_TITLE_KEY) || 'Untitled drawing';
 
 let isInitialized = false;
 
@@ -157,6 +170,9 @@ export function initTopbar() {
   const dropdown = document.getElementById('app-menu-dropdown');
   const openItem = document.getElementById('menu-item-open');
   const saveItem = document.getElementById('menu-item-save');
+  const saveCloudItem =document.getElementById('menu-item-save-cloud');
+  const loadCloudItem = document.getElementById('menu-item-load-cloud');
+    
   const exportItem = document.getElementById('menu-item-export');
   const resetItem = document.getElementById('menu-item-reset');
   const fileInput = document.getElementById('file-input-load');
@@ -225,7 +241,163 @@ export function initTopbar() {
       saveCanvasToFile();
     });
   }
+ // Save the current drawing to the cloud.
+if (saveCloudItem) {
+    saveCloudItem.addEventListener('click', async () => {
+        closeAppMenu();
 
+        const title = window.prompt(
+            'Enter a name for your cloud drawing:',
+            activeCloudDrawingTitle
+        );
+
+        if (title === null) {
+            return;
+        }
+
+        if (!title.trim()) {
+            window.alert('Please enter a drawing title.');
+            return;
+        }
+
+        try {
+            const state = getState();
+            let savedDrawing;
+
+            if (activeCloudDrawingId) {
+                // An ID exists, so update the existing drawing.
+                savedDrawing = await updateCloudDrawing(
+                    activeCloudDrawingId,
+                    state,
+                    title.trim()
+                );
+
+                window.alert(
+                    `Drawing updated successfully!\nID: ${savedDrawing.id}`
+                );
+
+            } else {
+                // No ID exists, so create a new drawing.
+                savedDrawing = await createCloudDrawing(
+                    state,
+                    title.trim()
+                );
+
+                window.alert(
+                    `Drawing saved successfully!\nID: ${savedDrawing.id}`
+                );
+            }
+
+            // Remember the ID and title only after a successful save.
+            activeCloudDrawingId = savedDrawing.id;
+            activeCloudDrawingTitle = savedDrawing.title;
+
+            localStorage.setItem(
+                CLOUD_DRAWING_ID_KEY,
+                activeCloudDrawingId
+            );
+
+            localStorage.setItem(
+                CLOUD_DRAWING_TITLE_KEY,
+                activeCloudDrawingTitle
+            );
+
+            console.log('Cloud drawing saved:', savedDrawing);
+
+        } catch (error) {
+            console.error('Cloud save failed:', error);
+
+            window.alert(
+                `Could not save drawing: ${error.message}`
+            );
+        }
+    });
+}
+
+// Load a saved drawing from the cloud.
+if (loadCloudItem) {
+    loadCloudItem.addEventListener('click', async () => {
+        closeAppMenu();
+
+        const id = window.prompt(
+            'Enter the ID of the cloud drawing to load:'
+        );
+
+        // Stop if the user cancels.
+        if (id === null) {
+            return;
+        }
+
+        const drawingId = id.trim();
+
+        if (!drawingId) {
+            window.alert('Please enter a drawing ID.');
+            return;
+        }
+
+        try {
+            // Fetch the saved drawing from Spring Boot.
+            const cloudDrawing = await getCloudDrawing(drawingId);
+
+            // Check that the response contains valid scene data.
+            if (!Array.isArray(cloudDrawing.sceneData?.elements)) {
+                throw new Error('The saved drawing has invalid scene data.');
+            }
+
+            // Adapt the cloud response to the format
+            // expected by the existing JSON-loading function.
+            const excalidrawData = JSON.stringify({
+                type: 'excalidraw',
+                version: 2,
+                source: 'ExaCollab',
+                elements: cloudDrawing.sceneData.elements,
+                appState: cloudDrawing.sceneData.appState || {}
+            });
+
+            // Restore the drawing into the existing application state.
+            const loaded = loadFromJsonString(
+                excalidrawData,
+                getState(),
+                notify
+            );
+
+            if (!loaded) {
+                return;
+            }
+
+            // Preserve the existing local autosave behavior.
+            saveToLocalStorage(getState());
+
+            // Remember which cloud drawing is currently open.
+            activeCloudDrawingId = cloudDrawing.id;
+            activeCloudDrawingTitle =
+                cloudDrawing.title || 'Untitled drawing';
+
+            localStorage.setItem(
+                CLOUD_DRAWING_ID_KEY,
+                activeCloudDrawingId
+            );
+
+            localStorage.setItem(
+                CLOUD_DRAWING_TITLE_KEY,
+                activeCloudDrawingTitle
+            );
+
+            window.alert(
+                `Loaded "${activeCloudDrawingTitle}" successfully!`
+            );
+
+            console.log('Loaded cloud drawing:', cloudDrawing);
+
+        } catch (error) {
+            console.error('Cloud load failed:', error);
+
+            window.alert(
+                `Could not load drawing: ${error.message}`
+            );
+        }
+    });
+}
   // 5. Export image modal action
   if (exportItem) {
     exportItem.addEventListener('click', () => {

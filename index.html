@@ -43,6 +43,15 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
+ <!--this code is just to let u know where to find the stomp library -->
+    
+  <script type="importmap">
+{
+    "imports": {
+        "@stomp/stompjs": "https://ga.jspm.io/npm:@stomp/stompjs@7.3.0/esm6/index.js"
+    }
+}
+</script>
 </head>
 
 <body>
@@ -109,6 +118,62 @@
             <span class="app-menu-shortcut">Ctrl+S</span>
           </button>
 
+          <!-- Save to Cloud -->
+<button type="button" class="app-menu-item"
+        id="menu-item-save-cloud" role="menuitem">
+
+    <div class="app-menu-item-label">
+
+        <svg width="15" height="15"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round">
+
+            <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 16.25"></path>
+            <path d="M12 12v9"></path>
+            <path d="m8 17 4-5 4 5"></path>
+
+        </svg>
+
+        <span>Save to cloud</span>
+
+    </div>
+</button>
+
+<!-- Load from Cloud -->
+<button
+    type="button"
+    class="app-menu-item"
+    id="menu-item-load-cloud"
+    role="menuitem"
+>
+    <div class="app-menu-item-label">
+
+        <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        >
+            <path d="M12 16V4"></path>
+            <path d="m7 9 5-5 5 5"></path>
+            <path d="M20 16.5a4.5 4.5 0 0 0-2.5-8.2"></path>
+            <path d="M4 16.5a4.5 4.5 0 0 1 2.5-8.2"></path>
+            <path d="M4 16.5A4.5 4.5 0 0 0 8.5 21h7A4.5 4.5 0 0 0 20 16.5"></path>
+        </svg>
+
+        <span>Load from cloud</span>
+
+    </div>
+</button>
+
           <!-- Export Image Modal -->
           <button type="button" class="app-menu-item" id="menu-item-export" role="menuitem">
             <div class="app-menu-item-label">
@@ -143,6 +208,42 @@
       </div>
 
       <div class="topbar-right">
+
+              <!-- Online Collaborators -->
+      <div class="collaborators-wrapper">
+
+          <button
+              type="button"
+              class="collaborators-container"
+              id="collaborators-toggle"
+              aria-expanded="false"
+              aria-controls="collaborators-panel">
+
+              <span id="collaborators-count">0 online</span>
+
+              <div id="collaborators-list" class="collaborators-list">
+              </div>
+
+          </button>
+
+          <!-- Dropdown panel -->
+          <div
+              class="collaborators-panel"
+              id="collaborators-panel"
+              hidden>
+
+              <div class="collaborators-panel-header">
+                  People in this room
+              </div>
+
+              <div
+                  id="collaborators-panel-list"
+                  class="collaborators-panel-list">
+              </div>
+
+          </div>
+
+      </div>
         <!-- Quick Export Button -->
         <button type="button" class="topbar-action-btn" id="btn-quick-export" title="Export image (Ctrl+Shift+E)"
           aria-label="Export image">
@@ -156,6 +257,8 @@
         </button>
       </div>
     </header>
+
+    
 
     <!-- Floating Shape Toolbar Container -->
     <nav id="toolbar-container" class="ui-layer toolbar-container">
