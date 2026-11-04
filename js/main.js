@@ -20,7 +20,10 @@ import {
   notify
 } from './core/state.js';
 import { createElement, createDraftElement, normalizeElementBounds } from './core/element-factory.js';
-import { screenToScene } from './core/coordinates.js';
+import {
+    screenToScene,
+    sceneToScreen
+} from './core/coordinates.js';
 import { renderStaticScene } from './core/static-renderer.js';
 import { renderInteractiveScene } from './core/interactive-renderer.js';
 import { loadComponent } from './component-loader.js';
@@ -55,7 +58,9 @@ import { initLayersPanel } from './features/ui/layers-panel.js';
 
 import {
     connectDrawingRoom,
-    sendDrawingUpdate,
+   
+      sendDrawingDelta,
+    sendCursorUpdate,
     disconnectDrawingRoom
 } from './features/api/drawing-sync.js';
 
@@ -511,6 +516,8 @@ function handlePointerDown(event) {
 function handlePointerMove(event) {
   const state = getState();
   const container = canvasElements.container;
+
+  
 
   // 0. Live Canvas Viewport Panning
   if (isPanning) {
@@ -1159,6 +1166,54 @@ if (!currentUserName) {
     
 }
 
+// Give this browser tab a unique cursor ID.
+const cursorId = crypto.randomUUID();
+
+// Remember when we last sent a cursor update.
+let lastCursorSentAt = 0;
+
+// Track mouse movement over the canvas.
+window.addEventListener("pointermove", (event) => {
+
+    const container = canvasElements.container;
+
+    // Ignore mouse movements outside the canvas.
+    if (!container || !container.contains(event.target)) {
+        return;
+    }
+
+    // Limit cursor updates to approximately 20 per second.
+    const now = Date.now();
+
+    if (now - lastCursorSentAt < 50) {
+        return;
+    }
+
+    lastCursorSentAt = now;
+
+    // Get the current canvas state.
+    const state = getState();
+
+    // Get the canvas container's screen boundaries.
+    const containerRect = container.getBoundingClientRect();
+
+    // Convert mouse screen coordinates into scene coordinates.
+    const scenePos = screenToScene(
+        event.clientX,
+        event.clientY,
+        state.viewport,
+        containerRect
+    );
+
+    // Send cursor position to other users.
+    sendCursorUpdate(
+        currentUserName,
+        cursorId,
+        scenePos.x,
+        scenePos.y
+    );
+});
+
 
 // Get collaborators UI elements.
 const collaboratorsToggle = document.getElementById("collaborators-toggle");
@@ -1201,6 +1256,12 @@ document.addEventListener("keydown", (event) => {
         collaboratorsToggle.setAttribute("aria-expanded", "false");
     }
 });
+
+// Stores remote cursor elements using their unique cursor IDs.
+const remoteCursors = new Map();
+
+// Remember deletion versions to support restoring elements through Undo.
+const knownDeletionVersions = new Map();
 // Connect to the drawing room.
 connectDrawingRoom(
 
@@ -1291,12 +1352,181 @@ connectDrawingRoom(
 
         panelList.appendChild(row);
     });
+
+},
+
+// 4. Handle cursor updates from other users.
+(cursorMessage) => {
+
+  
+
+    
+
+if (!cursorMessage || cursorMessage.cursorId === cursorId) {
+    
+    return;
 }
+
+// Check whether the required HTML elements exist.
+const cursorLayer = document.getElementById("remote-cursors-layer");
+const container = canvasElements.container;
+
+
+
+
+
+
+    // Find an existing cursor using its WebSocket session ID.
+let cursorElement = remoteCursors.get(cursorMessage.sessionId);
+
+    // Create the cursor only once.
+    if (!cursorElement) {
+
+        cursorElement = document.createElement("div");
+        cursorElement.className = "remote-cursor";
+
+        const cursorIcon = document.createElement("div");
+        cursorIcon.className = "remote-cursor-icon";
+
+        const cursorLabel = document.createElement("span");
+        cursorLabel.className = "remote-cursor-label";
+
+        cursorElement.appendChild(cursorIcon);
+        cursorElement.appendChild(cursorLabel);
+
+        cursorLayer.appendChild(cursorElement);
+
+        remoteCursors.set(cursorMessage.sessionId, cursorElement);
+    }
+
+    // Update username.
+    const label = cursorElement.querySelector(".remote-cursor-label");
+    label.textContent = cursorMessage.sender || "Guest";
+
+    // Convert scene coordinates into our screen coordinates.
+    const state = getState();
+    const containerRect = container.getBoundingClientRect();
+
+    const screenPos = sceneToScreen(
+        cursorMessage.x,
+        cursorMessage.y,
+        state.viewport,
+        containerRect
+    );
+
+    // Position the cursor.
+    cursorElement.style.left =
+        `${screenPos.x - containerRect.left}px`;
+
+    cursorElement.style.top =
+        `${screenPos.y - containerRect.top}px`;
+},
+
+// 6. Remove a collaborator's cursor when they disconnect.
+(sessionId) => {
+
+    const cursorElement = remoteCursors.get(sessionId);
+
+    if (cursorElement) {
+        cursorElement.remove();
+        remoteCursors.delete(sessionId);
+    }
+},
+
+// 7. Handle incremental drawing updates from other users.
+(message) => {
+
+    if (!message) return;
+
+    console.log("[Collaboration] Received drawing delta:", message);
+
+    const state = getState();
+
+    isApplyingRemoteUpdate = true;
+
+    try {
+
+        // Create a map of our existing elements.
+        const elementsMap = new Map(
+            state.elements.map(element => [element.id, element])
+        );
+
+        // Apply accepted additions and modifications.
+        const upserts = message.upsertedElements || [];
+
+        for (const incoming of upserts) {
+
+            if (!incoming || !incoming.id) continue;
+
+            const existing = elementsMap.get(incoming.id);
+
+            const incomingVersion = Number(incoming.version || 0);
+            const existingVersion = Number(existing?.version || 0);
+
+            // The backend's accepted update is authoritative at equal versions too.
+            if (!existing || incomingVersion >= existingVersion) {
+                elementsMap.set(incoming.id, incoming);
+            }
+        }
+
+        // Apply accepted deletions.
+        const deletions = message.deletedElementVersions || {};
+
+        for (const [elementId, deletionVersion] of Object.entries(deletions)) {
+
+          // Remember the latest deletion version received from the backend.
+            const numericDeletionVersion = Number(deletionVersion);
+
+            const previousDeletionVersion =
+                knownDeletionVersions.get(elementId) || 0;
+
+            knownDeletionVersions.set(
+                elementId,
+                Math.max(previousDeletionVersion, numericDeletionVersion)
+            );
+
+            const existing = elementsMap.get(elementId);
+            const existingVersion = Number(existing?.version || 0);
+
+           if (numericDeletionVersion >= existingVersion)  {
+                elementsMap.delete(elementId);
+            }
+        }
+
+        // Convert the map back into the elements array.
+        state.elements = Array.from(elementsMap.values());
+
+        // Remove deleted elements from the current selection.
+        for (const id of Object.keys(state.selectedElementIds)) {
+            if (!elementsMap.has(id)) {
+                delete state.selectedElementIds[id];
+            }
+        }
+
+        notify();
+
+    } finally {
+
+        previousElements = JSON.stringify(state.elements);
+        isApplyingRemoteUpdate = false;
+
+    }
+}
+
+
+
+
 
 );
 
 let syncTimer = null;
-let pendingElements = null;
+
+
+// Store pending element updates by their unique IDs.
+let pendingUpserts = new Map();
+
+// Store pending deletions with their corresponding versions.
+let pendingDeletions = new Map();
 
 
 // Listen for local state changes.
@@ -1308,19 +1538,101 @@ subscribe((state) => {
         return;
     }
 
-    previousElements = currentElements;
+    // Get the elements before this change.
+    const oldElements = previousElements
+        ? JSON.parse(previousElements)
+        : [];
 
-    // Don't rebroadcast changes received from another user.
+    // Don't send changes received from another user.
     if (isApplyingRemoteUpdate) {
+        previousElements = currentElements;
         return;
     }
 
-    console.log("[Collaboration] Sending drawing update:", state.elements);
+    // Create a map of previously existing elements.
+    const previousMap = new Map(
+        oldElements
+            .filter(el => el && el.id)
+            .map(el => [el.id, el])
+    );
 
-    // Keep the latest drawing state waiting to be sent.
-    pendingElements = JSON.parse(currentElements);
+    const currentIds = new Set();
 
-    // Send at most one update every 100 milliseconds.
+    // 1. Detect newly created and modified elements.
+    for (const element of state.elements) {
+
+        if (!element || !element.id) continue;
+
+        currentIds.add(element.id);
+
+        const previous = previousMap.get(element.id);
+
+        // Ensure Undo/Redo never sends an older element version.
+      if (
+          previous &&
+          JSON.stringify(previous) !== JSON.stringify(element) &&
+          Number(element.version || 0) <= Number(previous.version || 0)
+      ) {
+          element.version = Number(previous.version || 0) + 1;
+      }
+
+        const lastDeletionVersion =
+            knownDeletionVersions.get(element.id) || 0;
+
+        // Handle an element restored through Undo.
+        if (
+            !previous &&
+            lastDeletionVersion >= Number(element.version || 0)
+        ) {
+            element.version = lastDeletionVersion + 1;
+        }
+
+        const hasChanged =
+            !previous ||
+            JSON.stringify(previous) !== JSON.stringify(element);
+
+        if (hasChanged) {
+
+            // This element is active again.
+            pendingDeletions.delete(element.id);
+
+            pendingUpserts.set(
+                element.id,
+                JSON.parse(JSON.stringify(element))
+            );
+        }
+    }
+
+    // 2. Detect deleted elements.
+    for (const [elementId, previous] of previousMap) {
+
+        if (!currentIds.has(elementId)) {
+
+            const previousVersion = Number(previous.version || 1);
+
+            const lastDeletionVersion =
+                knownDeletionVersions.get(elementId) || 0;
+
+            const deletionVersion = Math.max(
+                previousVersion + 1,
+                lastDeletionVersion + 1
+            );
+
+            // Remember the deletion version.
+            knownDeletionVersions.set(elementId, deletionVersion);
+
+            // Remove any pending update for this element.
+            pendingUpserts.delete(elementId);
+
+            // Store its deletion version.
+            pendingDeletions.set(elementId, deletionVersion);
+        }
+    }
+
+    // Update our comparison snapshot.
+    previousElements = JSON.stringify(state.elements);
+
+    // 3. Batch changes using the existing 100 ms timer.
     if (syncTimer !== null) {
         return;
     }
@@ -1329,36 +1641,32 @@ subscribe((state) => {
 
         syncTimer = null;
 
-        const elementsToSend = pendingElements;
+        const upserts = Array.from(pendingUpserts.values());
 
-        pendingElements = null;
+        const deletions = Object.fromEntries(pendingDeletions);
 
-        if (elementsToSend) {
-            sendDrawingUpdate(currentUserName, elementsToSend);
+        pendingUpserts.clear();
+        pendingDeletions.clear();
+
+        if (upserts.length > 0 || Object.keys(deletions).length > 0) {
+
+            console.log("[Collaboration] Sending drawing delta:", {
+                upserts,
+                deletions
+            });
+
+            sendDrawingDelta(
+                currentUserName,
+                upserts,
+                deletions
+            );
         }
 
     }, 100);
 
 });
-window.sendTestDrawingUpdate = () => {
-
-    const testRectangle = createElement("rectangle", {
-        x: 100,
-        y: 100,
-        width: 150,
-        height: 80,
-
-        strokeColor: "#ff0000",
-        backgroundColor: "#ffcccc",
-        fillStyle: "solid",
-        strokeWidth: 3
-    });
-
-    sendDrawingUpdate("Harsh", [testRectangle]);
-};
-
-  console.log('[Excalidraw Vanilla] Stage 19 Arrow Labels & Element Locking initialized successfully.');
 }
+
 
 // Wait for the DOM to be ready before initializing.
 if (document.readyState === 'loading') {
@@ -1366,3 +1674,4 @@ if (document.readyState === 'loading') {
 } else {
   initializeApp();
 }
+

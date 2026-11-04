@@ -7,6 +7,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @Entity
 @Table(name = "room_states")
@@ -25,6 +26,11 @@ public class RoomState {
 
     @Column(name = "updated_at", columnDefinition = "timestamptz")
     private OffsetDateTime updatedAt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "deleted_element_versions", columnDefinition = "jsonb", nullable = false)
+
+    private Map<String, Long> deletedElementVersions = new HashMap<>();
 
     public RoomState() {
     }
@@ -59,5 +65,13 @@ public class RoomState {
 
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Map<String, Long> getDeletedElementVersions() {
+    return deletedElementVersions;
+}
+
+    public void setDeletedElementVersions(Map<String, Long> deletedElementVersions) {
+        this.deletedElementVersions = deletedElementVersions;
     }
 }

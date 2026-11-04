@@ -50,8 +50,10 @@ private void broadcastUsers(String roomId) {
     Map<String, String> users = roomUsers.get(roomId);
 
     List<String> usernames = users == null
-            ? List.of()
-            : List.copyOf(users.values());
+        ? List.of()
+        : users.values().stream() // Allows us to process those usernames.
+                .distinct()
+                .toList();
 
     messagingTemplate.convertAndSend(
             "/topic/rooms/" + roomId + "/presence",
@@ -84,6 +86,12 @@ public void removeUser(String sessionId) {
     if (users.isEmpty()) {
         roomUsers.remove(roomId, users);
     }
+
+    // Tell everyone in the room to remove this user's cursor.
+    messagingTemplate.convertAndSend(
+            "/topic/rooms/" + roomId + "/cursor-left",
+            sessionId
+    );
 
     // Send the updated user list to everyone remaining.
     broadcastUsers(roomId);

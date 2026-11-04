@@ -47,3 +47,70 @@
   z-index: 2;
   pointer-events: none; /* Never blocks pointer events from reaching workspace */
 }
+
+
+/* Remote Collaborator Cursor Layer */
+#remote-cursors-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    z-index: 10;
+
+    /* Never block drawing or mouse interactions */
+    pointer-events: none;
+
+    overflow: hidden;
+}
+
+/* Individual remote collaborator cursor */
+.remote-cursor {
+    position: absolute;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+
+    z-index: 20;
+    pointer-events: none;
+
+    white-space: nowrap;
+    will-change: left, top;
+}
+
+/* Cursor arrow */
+.remote-cursor-icon {
+    width: 15px;
+    height: 20px;
+
+    background-color: var(--color-primary);
+
+    clip-path: polygon(
+        0 0,
+        0 100%,
+        30% 75%,
+        50% 100%,
+        65% 92%,
+        43% 65%,
+        80% 65%
+    );
+}
+
+/* Username label */
+.remote-cursor-label {
+    margin-top: 12px;
+    padding: 4px 7px;
+
+    background-color: var(--color-primary);
+    color: var(--color-text-inverse);
+
+    border-radius: 4px;
+
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-ui);
+
+    box-shadow: var(--shadow-button);
+}
