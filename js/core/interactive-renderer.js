@@ -14,6 +14,62 @@ import {
 } from '../features/selection/transform.js';
 import { renderSnapGuides } from '../features/selection/snap-overlay.js';
 
+// Stores selections made by remote collaborators.
+export const remoteSelections = new Map();
+
+// Distinct colours for remote collaborator selections.
+const REMOTE_SELECTION_COLORS = [
+    "#e03131",
+    "#1971c2",
+    "#862e9c",
+    "#e67700",
+    "#0c8599",
+    "#6741d9"
+];
+
+// Generate a consistent colour for each collaborator session.
+function getRemoteSelectionColor(sessionId) {
+
+    let hash = 0;
+
+    for (const char of sessionId) {
+        hash = ((hash << 5) - hash) + char.charCodeAt(0);
+        hash |= 0;
+    }
+
+    return REMOTE_SELECTION_COLORS[
+        Math.abs(hash) % REMOTE_SELECTION_COLORS.length
+    ];
+}
+
+// Draws the temporary rectangle while selecting multiple elements.
+function renderSelectionMarquee(ctx, element, zoom) {
+
+    if (!element) return;
+
+    ctx.save();
+
+    // Handle dragging in any direction.
+    const x = Math.min(element.x, element.x + element.width);
+    const y = Math.min(element.y, element.y + element.height);
+
+    const width = Math.abs(element.width);
+    const height = Math.abs(element.height);
+
+    // Light transparent background.
+    ctx.fillStyle = 'rgba(40, 116, 91, 0.08)';
+    ctx.fillRect(x, y, width, height);
+
+    // Dashed selection boundary.
+    ctx.strokeStyle = '#28745B';
+    ctx.lineWidth = 1 / zoom;
+    ctx.setLineDash([6 / zoom, 4 / zoom]);
+
+    ctx.strokeRect(x, y, width, height);
+
+    ctx.restore();
+}
+
 // Draws a bounding box with selection handles around a selected element.
 export function renderSelectionBox(ctx, element, zoom) {
   if (!element || element.isDeleted) return;
@@ -110,23 +166,69 @@ export function renderSelectionBox(ctx, element, zoom) {
   ctx.restore();
 }
 
-// Draws a dashed marquee selection rectangle with translucent fill on interactive-canvas.
-export function renderSelectionMarquee(ctx, marquee, zoom) {
-  const minX = Math.min(marquee.x, marquee.x + marquee.width);
-  const minY = Math.min(marquee.y, marquee.y + marquee.height);
-  const width = Math.abs(marquee.width);
-  const height = Math.abs(marquee.height);
 
-  ctx.save();
-  ctx.fillStyle = 'rgba(40, 116, 91, 0.08)';
-  ctx.strokeStyle = '#28745B';
-  ctx.lineWidth = 1 / zoom;
-  ctx.setLineDash([4 / zoom, 4 / zoom]);
+// Draws a selection outline for another collaborator.
+export function renderRemoteSelectionOutline(
+    ctx,
+    element,
+    zoom,
+    color,
+    sender,
+    isEditing = false
+) {
+    if (!element || element.isDeleted) return;
 
-  ctx.fillRect(minX, minY, width, height);
-  ctx.strokeRect(minX, minY, width, height);
+    ctx.save();
 
-  ctx.restore();
+    const minX = Math.min(element.x, element.x + element.width);
+    const minY = Math.min(element.y, element.y + element.height);
+
+    const padding = 8 / zoom;
+
+    const x = minX - padding;
+    const y = minY - padding;
+    const width = Math.abs(element.width) + padding * 2;
+    const height = Math.abs(element.height) + padding * 2;
+
+    // Draw the coloured selection outline.
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 / zoom;
+    ctx.setLineDash([5 / zoom, 4 / zoom]);
+
+    ctx.strokeRect(x, y, width, height);
+
+    ctx.setLineDash([]);
+
+    // Show whether the collaborator is actively editing.
+    const collaboratorName = String(sender || "Guest");
+    const name = isEditing
+        ? `${collaboratorName} · editing`
+        : collaboratorName;
+
+    const fontSize = 12 / zoom;
+    const labelHeight = 20 / zoom;
+    const labelPadding = 6 / zoom;
+
+    ctx.font = `${fontSize}px sans-serif`;
+
+    const textWidth = ctx.measureText(name).width;
+    const labelWidth = textWidth + labelPadding * 2;
+    const labelY = y - labelHeight;
+
+    ctx.fillStyle = color;
+    ctx.fillRect(x, labelY, labelWidth, labelHeight);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText(
+        name,
+        x + labelPadding,
+        labelY + labelHeight / 2
+    );
+
+    ctx.restore();
 }
 
 // Main interactive overlay render function.
@@ -166,6 +268,36 @@ export function renderInteractiveScene() {
       renderSelectionBox(interactiveCtx, element, viewport.zoom);
     }
   }
+
+  // 6. Render selection outlines made by remote collaborators.
+for (const [sessionId, selection] of remoteSelections) {
+
+    const color = getRemoteSelectionColor(sessionId);
+
+    for (const elementId of selection.selectedElementIds || []) {
+
+        const element = elements.find(
+            el => el.id === elementId
+        );
+
+        if (element) {
+
+            // Check whether this particular shape is being edited.
+            const isEditing = (
+                selection.editingElementIds || []
+            ).includes(elementId);
+
+            renderRemoteSelectionOutline(
+                interactiveCtx,
+                element,
+                viewport.zoom,
+                color,
+                selection.sender,
+                isEditing
+            );
+        }
+    }
+}
 
   // 6. Render snap guide lines (visible during element dragging).
   renderSnapGuides(interactiveCtx, viewport.zoom);

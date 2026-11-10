@@ -6,11 +6,16 @@ import com.harsh.exacollab.dto.DrawingSyncMessage;
 
 import com.harsh.exacollab.entity.RoomState;
 import com.harsh.exacollab.dto.CursorMessage;
+import com.harsh.exacollab.dto.SelectionMessage;
+import com.harsh.exacollab.service.RoomLockService;
 
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import java.util.List;
 import com.harsh.exacollab.service.RoomStateService;
 import com.harsh.exacollab.dto.DrawingDeltaMessage;
+
+import com.harsh.exacollab.dto.ElementLockMessage;
+import java.util.Map;
 
 import com.harsh.exacollab.service.RoomPresenceService;
 import org.springframework.messaging.handler.annotation.Header;
@@ -30,14 +35,18 @@ public class CollaborationController {
 
     private final RoomPresenceService roomPresenceService;
 
+    private final RoomLockService roomLockService;
+
    public CollaborationController(
         SimpMessagingTemplate messagingTemplate,
         RoomStateService roomStateService,
-        RoomPresenceService roomPresenceService) {
+        RoomPresenceService roomPresenceService,
+        RoomLockService roomLockService) {
 
     this.messagingTemplate = messagingTemplate;
     this.roomStateService = roomStateService;
     this.roomPresenceService = roomPresenceService;
+    this.roomLockService = roomLockService;
 }
 
     @MessageMapping("/rooms/{roomId}/message")  // This specifies which incoming STOMP messages should be handled by our method.
@@ -54,15 +63,15 @@ public class CollaborationController {
     
         
 
-// Receives individual drawing changes from collaborators.
 @MessageMapping("/rooms/{roomId}/drawing-delta")
 public void syncDrawingDelta(
         @DestinationVariable String roomId,
-        DrawingDeltaMessage message) {
+        @Header("simpSessionId") String sessionId,
+        @Payload DrawingDeltaMessage message) {
 
     // Merge changes and reject outdated updates.
     DrawingDeltaMessage acceptedMessage =
-            roomStateService.mergeRoomDelta(roomId, message);
+        roomStateService.mergeRoomDelta(roomId, sessionId, message);
 
     // Broadcast only the changes accepted by the backend.
     messagingTemplate.convertAndSend(
@@ -84,7 +93,85 @@ public void syncCursor(
             "/topic/rooms/" + roomId + "/cursor",
             cursorMessage
     );
+
+    
 }
+
+// Receive and broadcast collaborator selection updates.
+@MessageMapping("/rooms/{roomId}/selection")
+public void syncSelection(
+        @DestinationVariable String roomId,
+        @Header("simpSessionId") String sessionId,
+        @Payload SelectionMessage message) {
+
+    // Attach the actual WebSocket session ID.
+    message.setSessionId(sessionId);
+
+    // Broadcast selection information to everyone in the room.
+    messagingTemplate.convertAndSend(
+            "/topic/rooms/" + roomId + "/selection",
+            message
+    );
+}
+
+// Handles requests to lock an element.
+@MessageMapping("/rooms/{roomId}/lock")
+public void requestElementLock(
+        @DestinationVariable String roomId,
+        @Header("simpSessionId") String sessionId,
+        @Payload ElementLockMessage message) {
+
+    if (message == null || message.getElementId() == null
+            || message.getElementId().isBlank()) {
+        return;
+    }
+
+    // Try to acquire the lock for this WebSocket session.
+    boolean acquired = roomLockService.tryAcquireLock(
+            roomId,
+            message.getElementId(),
+            sessionId,
+            message.getUsername(),
+            message.getClientId()
+    );
+
+    // Notify the room if another collaborator owns the lock.
+    if (!acquired) {
+
+        messagingTemplate.convertAndSend(
+                "/topic/rooms/" + roomId + "/locks",
+                (Object)Map.of(
+                        "action", "DENIED",
+                        "elementId", message.getElementId(),
+                        "requesterSessionId", sessionId,
+                        "clientId", message.getClientId()
+                )
+        );
+    }
+}
+
+// Handles requests to unlock an element.
+@MessageMapping("/rooms/{roomId}/unlock")
+public void releaseElementLock(
+        @DestinationVariable String roomId,
+        @Header("simpSessionId") String sessionId,
+        @Payload ElementLockMessage message) {
+
+    if (message == null || message.getElementId() == null
+            || message.getElementId().isBlank()) {
+        return;
+    }
+
+    // Only the session that owns the lock can release it.
+    roomLockService.releaseLock(
+            roomId,
+            message.getElementId(),
+            sessionId
+    );
+}
+
+
+
 
 
 

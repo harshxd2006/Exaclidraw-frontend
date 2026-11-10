@@ -13,6 +13,9 @@ import { onShapeCommitted } from '../tools/tool-manager.js';
 // Holds a reference to the active textarea DOM element while editing.
 let activeTextarea = null;
 
+// Runs when the active text editor commits or cancels.
+let activeEditorCloseCallback = null;
+
 // Holds configuration metadata for the element currently being edited.
 let activeEditConfig = null;
 
@@ -65,7 +68,12 @@ function autoResizeEditor(textarea, fontSize, fontFamily, lineHeight, zoom) {
 }
 
 // Spawns the inline text editor at the given scene position or over an existing element.
-export function startTextEditor({ sceneX = 0, sceneY = 0, existingElement = null }) {
+export function startTextEditor({
+  sceneX = 0,
+  sceneY = 0,
+  existingElement = null,
+  onClose = null
+}) {
   // If an editor is already open, commit it before starting a new one.
   if (isEditingText()) {
     commitTextEditor();
@@ -76,6 +84,9 @@ export function startTextEditor({ sceneX = 0, sceneY = 0, existingElement = null
   if (!container) {
     return;
   }
+
+  // Store the callback to release collaborative locks when editing ends.
+  activeEditorCloseCallback = onClose;
 
   // Determine if we are editing a line/arrow label vs. a text element.
   const isEditingExisting = existingElement !== null;
@@ -315,6 +326,16 @@ export function commitTextEditor() {
   activeTextarea = null;
   activeEditConfig = null;
   isCommitting = false;
+
+
+  // Notify main.js that text editing has finished.
+const closeCallback = activeEditorCloseCallback;
+
+activeEditorCloseCallback = null;
+
+if (typeof closeCallback === 'function') {
+    closeCallback();
+}
 }
 
 // Cancels the current editing session without saving changes.
@@ -335,6 +356,15 @@ export function cancelTextEditor() {
   activeTextarea = null;
   activeEditConfig = null;
   isCommitting = false;
+
+  // Notify main.js that text editing has finished.
+const closeCallback = activeEditorCloseCallback;
+
+activeEditorCloseCallback = null;
+
+if (typeof closeCallback === 'function') {
+    closeCallback();
+}
 
   // If cancelling a brand-new text element (not editing existing), switch back to selection.
   if (wasNewElement) {

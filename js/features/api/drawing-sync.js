@@ -9,6 +9,8 @@ let presenceSubscription = null;
 let cursorSubscription = null;
 let cursorLeftSubscription = null;
 let deltaSubscription = null;
+let selectionSubscription = null;
+let lockSubscription = null;
 
 
 // Connect to a drawing room.
@@ -19,7 +21,9 @@ export function connectDrawingRoom(
     onPresenceReceived,
     onCursorReceived,
     onCursorLeft,
-    onDrawingDeltaReceived
+    onDrawingDeltaReceived,
+     onSelectionReceived,
+     onLockUpdate
 ) {
 
     currentRoomId = roomId;
@@ -89,6 +93,34 @@ export function connectDrawingRoom(
             }
         );
 
+        // Receive selection updates from other collaborators.
+        selectionSubscription = stompClient.subscribe(
+            `/topic/rooms/${roomId}/selection`,
+            (frame) => {
+
+                const message = JSON.parse(frame.body);
+
+                if (onSelectionReceived) {
+                    onSelectionReceived(message);
+                }
+            }
+        );
+
+        // Receive collaborative lock updates.
+            lockSubscription = stompClient.subscribe(
+                `/topic/rooms/${roomId}/locks`,
+                (frame) => {
+
+                    const message = JSON.parse(frame.body);
+
+                    console.log("[Collaboration] Lock update received:", message);
+
+                    if (onLockUpdate) {
+                        onLockUpdate(message);
+                    }
+                }
+            );
+
             // Listen when another user's cursor leaves the room.
         cursorLeftSubscription = stompClient.subscribe(
             `/topic/rooms/${roomId}/cursor-left`,
@@ -155,7 +187,7 @@ export function connectDrawingRoom(
     stompClient.activate();
 }
 
-
+    
 
 
 // Send individual drawing changes to the backend.
@@ -217,6 +249,18 @@ export async function disconnectDrawingRoom() {
         deltaSubscription = null;
     }
 
+        // Clean up selection subscription.
+    if (selectionSubscription) {
+        selectionSubscription.unsubscribe();
+        selectionSubscription = null;
+    }
+
+    // Clean up collaborative lock subscription.
+    if (lockSubscription) {
+        lockSubscription.unsubscribe();
+        lockSubscription = null;
+    }
+
     // Disconnect the WebSocket connection.
     if (stompClient) {
         await stompClient.deactivate();
@@ -224,6 +268,34 @@ export async function disconnectDrawingRoom() {
     }
 
     currentRoomId = null;
+}
+
+// Send selection updates to other collaborators.
+export function sendSelectionUpdate(
+    sender,
+    clientId,
+    selectedElementIds,
+    editingElementIds = undefined
+) {
+    if (!stompClient || !stompClient.connected) {
+        return;
+    }
+
+    const message = {
+        sender: sender,
+        clientId: clientId,
+        selectedElementIds: selectedElementIds
+    };
+
+    // Include editing information only when explicitly provided.
+    if (editingElementIds !== undefined) {
+        message.editingElementIds = editingElementIds;
+    }
+
+    stompClient.publish({
+        destination: `/app/rooms/${currentRoomId}/selection`,
+        body: JSON.stringify(message)
+    });
 }
 
 
@@ -246,4 +318,45 @@ export function sendCursorUpdate(sender, cursorId, x, y) {
         })
 
     });
+}
+
+// Request ownership of an element lock.
+export function requestElementLock(elementId, username,clientId) {
+
+    if (!stompClient || !stompClient.connected) {
+        console.warn("[Lock] Cannot request lock: WebSocket disconnected");
+        return false;
+    }
+
+    stompClient.publish({
+        destination: `/app/rooms/${currentRoomId}/lock`,
+
+        body: JSON.stringify({
+            elementId: elementId,
+            username: username,
+            clientId: clientId
+        })
+    });
+
+    return true;
+}
+
+
+// Release an element lock owned by this session.
+export function releaseElementLock(elementId) {
+
+    if (!stompClient || !stompClient.connected) {
+        console.warn("[Lock] Cannot release lock: WebSocket disconnected");
+        return false;
+    }
+
+    stompClient.publish({
+        destination: `/app/rooms/${currentRoomId}/unlock`,
+
+        body: JSON.stringify({
+            elementId: elementId
+        })
+    });
+
+    return true;
 }

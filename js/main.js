@@ -25,7 +25,11 @@ import {
     sceneToScreen
 } from './core/coordinates.js';
 import { renderStaticScene } from './core/static-renderer.js';
-import { renderInteractiveScene } from './core/interactive-renderer.js';
+import {
+    renderInteractiveScene,
+    remoteSelections
+} from './core/interactive-renderer.js';
+
 import { loadComponent } from './component-loader.js';
 import { initToolbarUI } from './features/ui/toolbar.js';
 import { initPropertiesPanel } from './features/ui/properties-panel.js';
@@ -61,12 +65,18 @@ import {
    
       sendDrawingDelta,
     sendCursorUpdate,
-    disconnectDrawingRoom
+    sendSelectionUpdate,
+    disconnectDrawingRoom,
+    requestElementLock,
+    releaseElementLock
 } from './features/api/drawing-sync.js';
 
 // Interaction tracking variables for drawing, moving elements, marquee selection, resizing, and panning.
 let isDrawing = false;
+let currentUserName = "Guest";
+let pendingTextEditElementId = null;
 let isDraggingElements = false;
+let hasSentEditingStart = false;
 let isMarqueeSelecting = false;
 let isResizing = false;
 let isPanning = false;
@@ -78,6 +88,66 @@ let initialResizeBounds = null;
 let startScenePos = { x: 0, y: 0 };
 let currentDraft = null;
 let dragInitialPositions = {};
+const cursorId = crypto.randomUUID();
+// Stores collaborative locks received from the backend.
+const collaborativeLocks = new Map();
+
+// Tracks expiration timers for unused lock reservations.
+const lockReservationTimers = new Map();
+
+// Tracks lock requests awaiting backend approval.
+const pendingLockRequests = new Set();
+
+// Tracks locks that must be released if approval arrives after pointer-up.
+const releaseAfterGrant = new Set();
+
+// Tracks lock requests initiated during the current pointer gesture.
+const pendingLockGestureIds = new Set();
+
+// Tracks locks acquired for the current editing gesture.
+const activeGestureLockIds = new Set();
+
+// Prevents repeated requests after a lock has been denied.
+const deniedLockRequests = new Set();
+
+
+// Drawing synchronization queue.
+let syncTimer = null;
+
+const pendingUpserts = new Map();
+
+const pendingDeletions = new Map();
+
+
+// Immediately send all pending drawing changes.
+function flushPendingDrawingChanges() {
+
+    // Cancel the scheduled batch timer.
+    if (syncTimer !== null) {
+        clearTimeout(syncTimer);
+        syncTimer = null;
+    }
+
+    // Collect pending changes.
+    const upserts = Array.from(pendingUpserts.values());
+    const deletions = Object.fromEntries(pendingDeletions);
+
+    // Clear the queues.
+    pendingUpserts.clear();
+    pendingDeletions.clear();
+
+    // Send changes immediately.
+    if (upserts.length > 0 || Object.keys(deletions).length > 0) {
+
+        console.log("[Collaboration] Flushing pending drawing changes");
+
+        sendDrawingDelta(
+            currentUserName,
+            upserts,
+            deletions
+        );
+    }
+}
 
 // Endpoint drag state (for arrow/line head/tail independent dragging)
 let isDraggingEndpoint = false;
@@ -226,6 +296,114 @@ function seedDemonstrationElements() {
   clearHistory();
 }
 
+// Checks whether the current browser owns all required element locks.
+function ensureCollaborativeLocks(elementIds) {
+
+    const uniqueIds = [...new Set(elementIds.filter(Boolean))];
+
+    let allLocksOwned = true;
+
+    for (const elementId of uniqueIds) {
+
+        const lock = collaborativeLocks.get(elementId);
+
+        // This browser already owns the lock.
+if (lock && lock.clientId === cursorId) {
+
+    // Cancel the unused-lock reservation timer.
+    const timerId = lockReservationTimers.get(elementId);
+
+    if (timerId) {
+        clearTimeout(timerId);
+        lockReservationTimers.delete(elementId);
+    }
+
+    continue;
+}
+
+        // Another collaborator owns this lock.
+        if (lock) {
+            allLocksOwned = false;
+            continue;
+        }
+
+        allLocksOwned = false;
+
+        // Don't repeat requests that are already pending or denied.
+        if (
+            pendingLockRequests.has(elementId) ||
+            deniedLockRequests.has(elementId)
+        ) {
+            continue;
+        }
+
+        // Track the request.
+        pendingLockRequests.add(elementId);
+        pendingLockGestureIds.add(elementId);
+
+        // Request ownership from the backend.
+        const sent = requestElementLock(
+            elementId,
+            currentUserName,
+            cursorId
+        );
+
+        // Allow another attempt if sending failed.
+        if (!sent) {
+            pendingLockRequests.delete(elementId);
+            pendingLockGestureIds.delete(elementId);
+        }
+    }
+
+    // Register locks for the gesture only when ALL requested
+    // elements are already owned by this browser.
+    if (allLocksOwned) {
+        uniqueIds.forEach(elementId => {
+            activeGestureLockIds.add(elementId);
+        });
+    }
+
+    return allLocksOwned;
+}
+
+// Finish the current collaborative lock gesture.
+// Finish the current collaborative lock gesture.
+function finishCollaborativeLockGesture() {
+
+  // Send all final drawing changes before releasing locks.
+    flushPendingDrawingChanges();
+
+    // Release locks already acquired for this gesture.
+    for (const elementId of activeGestureLockIds) {
+
+        const lock = collaborativeLocks.get(elementId);
+
+        if (lock && lock.clientId === cursorId) {
+            releaseElementLock(elementId);
+        }
+    }
+
+    activeGestureLockIds.clear();
+
+    // Handle requests that were initiated but not yet used.
+    for (const elementId of pendingLockGestureIds) {
+
+        const lock = collaborativeLocks.get(elementId);
+
+        // Approval already arrived: release immediately.
+        if (lock && lock.clientId === cursorId) {
+
+            releaseElementLock(elementId);
+
+        } else if (pendingLockRequests.has(elementId)) {
+
+            // Approval hasn't arrived: release when it does.
+            releaseAfterGrant.add(elementId);
+        }
+    }
+
+    pendingLockGestureIds.clear();
+}
 // Handles pointerdown: starts drawing, moving elements, marquee box selection, or canvas panning.
 function handlePointerDown(event) {
   // Allow primary (left) mouse clicks and middle mouse wheel button (for panning).
@@ -304,6 +482,9 @@ function handlePointerDown(event) {
           // Priority 1: existing intermediate (bend) point handles
           const intHit = hitTestLineIntermediateHandles(scenePos.x, scenePos.y, selectedEl, state.viewport.zoom);
           if (intHit) {
+            if (!ensureCollaborativeLocks([selectedEl.id])) {
+        return;
+    }
             isDraggingBendPoint = true;
             bendPointElementId = selectedEl.id;
             bendPointIndex = intHit.pointIndex;
@@ -317,7 +498,12 @@ function handlePointerDown(event) {
           // Priority 2: endpoint handles (start / end)
           const epHit = hitTestLineEndpointHandles(scenePos.x, scenePos.y, selectedEl, state.viewport.zoom);
           if (epHit) {
-            isDraggingEndpoint = true;
+
+          if (!ensureCollaborativeLocks([selectedEl.id])) {
+              return;
+          }
+
+          isDraggingEndpoint = true;
             endpointDragElementId = selectedEl.id;
             endpointDragHandle = epHit;
             endpointDragInitialPoints = selectedEl.points.map(p => [...p]);
@@ -330,6 +516,9 @@ function handlePointerDown(event) {
           // Priority 3: segment midpoint handles — insert a new bend point then drag it
           const midHit = hitTestLineMidpointHandles(scenePos.x, scenePos.y, selectedEl, state.viewport.zoom);
           if (midHit) {
+              if (!ensureCollaborativeLocks([selectedEl.id])) {
+        return;
+    }
             const insertIdx = midHit.segmentIndex + 1;
             const newPx = Math.round(scenePos.x - selectedEl.x);
             const newPy = Math.round(scenePos.y - selectedEl.y);
@@ -355,6 +544,11 @@ function handlePointerDown(event) {
         // 2a-ii. Regular bounding-box handles
         const handleHit = hitTestTransformHandles(scenePos.x, scenePos.y, selectedEl, state.viewport.zoom);
         if (handleHit) {
+
+          if (!ensureCollaborativeLocks([selectedEl.id])) {
+        return;
+    }
+
           isResizing = true;
           activeResizeHandle = handleHit.handle;
           resizingElementId = selectedEl.id;
@@ -420,13 +614,22 @@ function handlePointerDown(event) {
         }
       }
 
-      // Only begin dragging if at least one element is selected
-      if (Object.keys(dragInitialPositions).length > 0) {
-        isDraggingElements = true;
-        startScenePos = scenePos;
-        beforeGestureSnapshot = createSnapshot(updatedState);
-      }
-      return;
+      // Only begin dragging if at least one element is selected.
+const elementsToDrag = Object.keys(dragInitialPositions);
+
+if (elementsToDrag.length > 0) {
+
+    // Acquire locks for every selected element before moving.
+    if (!ensureCollaborativeLocks(elementsToDrag)) {
+        dragInitialPositions = {};
+        return;
+    }
+
+    isDraggingElements = true;
+    hasSentEditingStart = false;
+    startScenePos = scenePos;
+    beforeGestureSnapshot = createSnapshot(updatedState);
+}
     }
 
     // 2c. Check if clicking on a transform handle of ANY unselected element (e.g. corner handle just outside shape)
@@ -434,6 +637,11 @@ function handlePointerDown(event) {
       const el = state.elements[i];
       const handleHit = hitTestTransformHandles(scenePos.x, scenePos.y, el, state.viewport.zoom);
       if (handleHit) {
+
+        // Request the collaborative lock before resizing.
+    if (!ensureCollaborativeLocks([el.id])) {
+        return;
+    }
         setSelectedElementIds([el.id]);
         isResizing = true;
         activeResizeHandle = handleHit.handle;
@@ -601,8 +809,20 @@ function handlePointerMove(event) {
     const dy = currentScenePos.y - startScenePos.y;
 
     if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-      gestureHasMoved = true;
+    gestureHasMoved = true;
+
+    if (!hasSentEditingStart) {
+      
+        sendSelectionUpdate(
+            currentUserName,
+            cursorId,
+            Object.keys(getState().selectedElementIds),
+            Object.keys(dragInitialPositions)
+        );
+
+        hasSentEditingStart = true;
     }
+}
 
     const snapStep = getActiveSnapStep(event);
     let effectiveDx = dx;
@@ -633,8 +853,25 @@ function handlePointerMove(event) {
     let dy = currentScenePos.y - startScenePos.y;
 
     if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-      gestureHasMoved = true;
+    gestureHasMoved = true;
+
+    if (!hasSentEditingStart) {
+
+        console.log(
+            "[Editing Debug] Sending editing start:",
+            Object.keys(dragInitialPositions)
+        );
+
+        sendSelectionUpdate(
+            currentUserName,
+            cursorId,
+            Object.keys(getState().selectedElementIds),
+            Object.keys(dragInitialPositions)
+        );
+
+        hasSentEditingStart = true;
     }
+}
 
     const snapStep = getActiveSnapStep(event);
     // Element-to-element snapping: active when grid snap is NOT engaged
@@ -798,6 +1035,10 @@ function handlePointerUp(event) {
     if (gestureHasMoved && beforeGestureSnapshot) {
       pushUndoSnapshot(beforeGestureSnapshot);
     }
+
+    // Release the collaborative lock acquired for bend-point editing.
+    finishCollaborativeLockGesture();
+    
     isDraggingBendPoint = false;
     bendPointElementId = null;
     bendPointIndex = null;
@@ -814,6 +1055,10 @@ function handlePointerUp(event) {
     if (gestureHasMoved && beforeGestureSnapshot) {
       pushUndoSnapshot(beforeGestureSnapshot);
     }
+
+    // Release the collaborative lock acquired for endpoint editing.
+    finishCollaborativeLockGesture();
+    
     isDraggingEndpoint = false;
     endpointDragElementId = null;
     endpointDragHandle = null;
@@ -840,6 +1085,9 @@ function handlePointerUp(event) {
     }
     beforeGestureSnapshot = null;
     gestureHasMoved = false;
+    
+    // Release the collaborative lock acquired for resizing.
+    finishCollaborativeLockGesture();
 
     isResizing = false;
     activeResizeHandle = null;
@@ -852,18 +1100,36 @@ function handlePointerUp(event) {
   }
 
   // 2. Finalize Dragging Elements
-  if (isDraggingElements) {
+  // 2. Finalize Dragging Elements
+if (isDraggingElements) {
     clearSnapGuides();
-    if (gestureHasMoved && beforeGestureSnapshot) {
-      pushUndoSnapshot(beforeGestureSnapshot);
+
+    // Release collaborative locks acquired for this drag.
+    finishCollaborativeLockGesture();
+
+    // Notify other collaborators that editing has stopped.
+    if (hasSentEditingStart) {
+        sendSelectionUpdate(
+            currentUserName,
+            cursorId,
+            Object.keys(state.selectedElementIds),
+            []
+        );
     }
+
+    hasSentEditingStart = false;
+
+    if (gestureHasMoved && beforeGestureSnapshot) {
+        pushUndoSnapshot(beforeGestureSnapshot);
+    }
+
     beforeGestureSnapshot = null;
     gestureHasMoved = false;
 
     isDraggingElements = false;
     dragInitialPositions = {};
     return;
-  }
+}
 
   // 3. Finalize Marquee Selection Box
   if (isMarqueeSelecting) {
@@ -914,22 +1180,81 @@ function handlePointerUp(event) {
   onShapeCommitted();
 }
 
-// Handles double-click events: opens the inline editor on text elements,
-// or opens a label editor when double-clicking an arrow or line.
+// Handles double-click events and checks collaborative lock ownership.
 function handleDoubleClick(event) {
-  const state = getState();
-  const containerRect = canvasElements.container.getBoundingClientRect();
-  const scenePos = screenToScene(event.clientX, event.clientY, state.viewport, containerRect);
-  const hitElement = hitTestElements(scenePos.x, scenePos.y, state.elements);
 
-  if (hitElement && hitElement.type === 'text') {
-    // Edit the text element content.
-    startTextEditor({ existingElement: hitElement });
-  } else if (hitElement && (hitElement.type === 'line' || hitElement.type === 'arrow')) {
-    // Open label editor at the midpoint of the line/arrow.
-    setSelectedElementIds([hitElement.id]);
-    startTextEditor({ existingElement: hitElement });
-  }
+    const state = getState();
+    const container = canvasElements.container;
+
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+
+    const scenePos = screenToScene(
+        event.clientX,
+        event.clientY,
+        state.viewport,
+        containerRect
+    );
+
+    const hitElement = hitTestElements(
+        scenePos.x,
+        scenePos.y,
+        state.elements
+    );
+
+    if (!hitElement) return;
+
+    // Only existing text and line/arrow labels need editing locks.
+    if (
+        hitElement.type !== 'text' &&
+        hitElement.type !== 'line' &&
+        hitElement.type !== 'arrow'
+    ) {
+        return;
+    }
+// Check whether another collaborator currently owns this element.
+const currentLock = collaborativeLocks.get(hitElement.id);
+
+if (currentLock && currentLock.clientId !== cursorId) {
+    console.log(
+        "[Lock] Another collaborator owns this element:",
+        hitElement.id
+    );
+    return;
+}
+
+// Remember which element we want to edit.
+pendingTextEditElementId = hitElement.id;
+
+// Request or verify ownership before opening the editor.
+if (!ensureCollaborativeLocks([hitElement.id])) {
+    console.log(
+        "[Lock] Waiting for permission to edit:",
+        hitElement.id
+    );
+    return;
+}
+
+// Lock is already owned, so no pending request is needed.
+pendingTextEditElementId = null;
+
+// Keep the collaborative lock active throughout text editing.
+activeGestureLockIds.add(hitElement.id);
+
+    // Select the line or arrow before editing its label.
+    if (
+        hitElement.type === 'line' ||
+        hitElement.type === 'arrow'
+    ) {
+        setSelectedElementIds([hitElement.id]);
+    }
+
+    // Open the editor and release the lock when editing finishes.
+    startTextEditor({
+        existingElement: hitElement,
+        onClose: finishCollaborativeLockGesture
+    });
 }
 
 // Handles context menu (right-click): selects clicked element and displays layer/object action menu.
@@ -1152,10 +1477,15 @@ async function initializeApp() {
 
   let previousElements = JSON.stringify(getState().elements);
 
+  // Remember the previous local selection.
+let previousSelectedElementIds = JSON.stringify(
+    Object.keys(getState().selectedElementIds).sort()
+);
+
   const roomId = new URLSearchParams(window.location.search)
     .get("room") || "demo-room";
 
-    let currentUserName = localStorage.getItem("exacollab-user-name");
+     currentUserName = localStorage.getItem("exacollab-user-name");
 
 if (!currentUserName) {
     currentUserName = prompt("Enter your display name:")?.trim() || "Guest";
@@ -1166,8 +1496,7 @@ if (!currentUserName) {
     
 }
 
-// Give this browser tab a unique cursor ID.
-const cursorId = crypto.randomUUID();
+
 
 // Remember when we last sent a cursor update.
 let lastCursorSentAt = 0;
@@ -1259,6 +1588,7 @@ document.addEventListener("keydown", (event) => {
 
 // Stores remote cursor elements using their unique cursor IDs.
 const remoteCursors = new Map();
+
 
 // Remember deletion versions to support restoring elements through Undo.
 const knownDeletionVersions = new Map();
@@ -1431,6 +1761,12 @@ let cursorElement = remoteCursors.get(cursorMessage.sessionId);
         cursorElement.remove();
         remoteCursors.delete(sessionId);
     }
+
+    // Remove this collaborator's remote selection.
+    remoteSelections.delete(sessionId);
+
+// Refresh the canvas to remove their selection outline.
+      notify();
 },
 
 // 7. Handle incremental drawing updates from other users.
@@ -1511,22 +1847,168 @@ let cursorElement = remoteCursors.get(cursorMessage.sessionId);
         isApplyingRemoteUpdate = false;
 
     }
+},
+
+  // 8. Handle selection and active-editing updates.
+(message) => {
+
+    if (!message || !message.sessionId) {
+        return;
+    }
+
+    // Ignore our own messages.
+    if (message.clientId === cursorId) {
+        return;
+    }
+
+    console.log("[Remote Selection Debug]", {
+    sender: message.sender,
+    selectedIds: message.selectedElementIds,
+    count: message.selectedElementIds?.length
+});
+
+console.log("[Editing Debug] Received:", {
+    sender: message.sender,
+    selectedIds: message.selectedElementIds,
+    editingIds: message.editingElementIds
+});
+
+    // Get this collaborator's previous state.
+    const previousSelection = remoteSelections.get(message.sessionId);
+
+    // Store the updated selection and editing information.
+    remoteSelections.set(message.sessionId, {
+        sender: message.sender || "Guest",
+        clientId: message.clientId,
+
+        selectedElementIds: Array.isArray(message.selectedElementIds)
+            ? message.selectedElementIds
+            : previousSelection?.selectedElementIds || [],
+
+        // Preserve the previous editing state when this is only
+        // a normal selection update.
+        editingElementIds: Array.isArray(message.editingElementIds)
+            ? message.editingElementIds
+            : previousSelection?.editingElementIds || []
+    });
+
+    notify();
+},
+
+// 9. Handle collaborative lock updates.
+(message) => {
+
+    if (!message || !message.elementId) {
+        return;
+    }
+
+    console.log("[Collaboration] Lock event:", message);
+
+    if (message.action === "LOCKED") {
+
+        collaborativeLocks.set(message.elementId, {
+            sessionId: message.sessionId,
+            clientId: message.clientId,
+            username: message.username || "Guest"
+        });
+
+        if (message.clientId === cursorId) {
+
+    pendingLockRequests.delete(message.elementId);
+    deniedLockRequests.delete(message.elementId);
+
+    releaseAfterGrant.delete(message.elementId);
+
+    // Clear any previous reservation timer.
+    const existingTimer = lockReservationTimers.get(
+        message.elementId
+    );
+
+    if (existingTimer) {
+        clearTimeout(existingTimer);
+    }
+
+    // Give the user 15 seconds to begin editing.
+    const timerId = setTimeout(() => {
+
+        const currentLock = collaborativeLocks.get(
+            message.elementId
+        );
+
+        // Release only if this browser still owns the lock
+        // and has not started an editing gesture.
+        if (
+            currentLock?.clientId === cursorId &&
+            !activeGestureLockIds.has(message.elementId)
+        ) {
+            releaseElementLock(message.elementId);
+        }
+
+        lockReservationTimers.delete(message.elementId);
+
+    }, 15000);
+
+    lockReservationTimers.set(message.elementId, timerId);
+
+    // Open the text editor once this browser receives the lock.
+if (pendingTextEditElementId === message.elementId) {
+
+    const state = getState();
+
+    const element = state.elements.find(
+        el => el.id === message.elementId
+    );
+
+    pendingTextEditElementId = null;
+
+    if (element) {
+
+        // Keep the lock active throughout text editing.
+        activeGestureLockIds.add(element.id);
+
+        // Select the line or arrow before editing its label.
+        if (
+            element.type === "line" ||
+            element.type === "arrow"
+        ) {
+            setSelectedElementIds([element.id]);
+        }
+
+        startTextEditor({
+            existingElement: element,
+            onClose: finishCollaborativeLockGesture
+        });
+    }
+}
 }
 
+    } else if (message.action === "UNLOCKED") {
 
+        collaborativeLocks.delete(message.elementId);
+        pendingLockRequests.delete(message.elementId);
+        deniedLockRequests.delete(message.elementId);
+        releaseAfterGrant.delete(message.elementId);
 
+    } else if (message.action === "DENIED") {
 
+        if (message.clientId === cursorId) {
 
+            pendingLockRequests.delete(message.elementId);
+            deniedLockRequests.add(message.elementId);
+            pendingLockRequests.delete(message.elementId);
+            releaseAfterGrant.delete(message.elementId);
+
+            console.warn(
+                "[Lock] Another collaborator already owns this shape:",
+                message.elementId
+            );
+        }
+    }
+
+    notify();
+}
 );
 
-let syncTimer = null;
-
-
-// Store pending element updates by their unique IDs.
-let pendingUpserts = new Map();
-
-// Store pending deletions with their corresponding versions.
-let pendingDeletions = new Map();
 
 
 // Listen for local state changes.
@@ -1534,9 +2016,45 @@ subscribe((state) => {
 
     const currentElements = JSON.stringify(state.elements);
 
-    if (currentElements === previousElements) {
-        return;
-    }
+// Get currently selected element IDs.
+const selectedIds = Object.keys(state.selectedElementIds).sort();
+
+const currentSelectedElementIds = JSON.stringify(selectedIds);
+
+// Check both types of changes independently.
+const elementsChanged = currentElements !== previousElements;
+
+const selectionChanged =
+    currentSelectedElementIds !== previousSelectedElementIds;
+
+// Nothing changed.
+if (!elementsChanged && !selectionChanged) {
+    return;
+}
+
+// Don't send updates received from another collaborator.
+if (isApplyingRemoteUpdate) {
+    previousElements = currentElements;
+    previousSelectedElementIds = currentSelectedElementIds;
+    return;
+}
+
+// Send selection changes independently.
+if (selectionChanged) {
+
+    previousSelectedElementIds = currentSelectedElementIds;
+
+    sendSelectionUpdate(
+        currentUserName,
+        cursorId,
+        selectedIds
+    );
+}
+
+// If only selection changed, drawing synchronization isn't needed.
+if (!elementsChanged) {
+    return;
+}
 
     // Get the elements before this change.
     const oldElements = previousElements
@@ -1665,13 +2183,13 @@ subscribe((state) => {
     }, 100);
 
 });
+
+// Close initializeApp().
+
 }
-
-
 // Wait for the DOM to be ready before initializing.
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
+    document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
-  initializeApp();
+    initializeApp();
 }
-

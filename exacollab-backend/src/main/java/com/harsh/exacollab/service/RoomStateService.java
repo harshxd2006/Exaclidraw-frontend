@@ -21,11 +21,15 @@ import java.util.Map;
 public class RoomStateService {
 
     private final RoomStateRepository roomStateRepository;
+    private final RoomLockService roomLockService;
 
-    // Constructor injection
-    public RoomStateService(RoomStateRepository roomStateRepository) {
-        this.roomStateRepository = roomStateRepository;
-    }
+    public RoomStateService(
+        RoomStateRepository roomStateRepository,
+        RoomLockService roomLockService) {
+
+    this.roomStateRepository = roomStateRepository;
+    this.roomLockService = roomLockService;
+}
 
     
     
@@ -38,6 +42,7 @@ public class RoomStateService {
    @Transactional
 public DrawingDeltaMessage mergeRoomDelta(
         String roomId,
+        String sessionId,
         DrawingDeltaMessage message) {
 
     // 1. Create the room if it doesn't exist.
@@ -111,6 +116,34 @@ public DrawingDeltaMessage mergeRoomDelta(
             long deletedVersion =
                     deletionVersions.getOrDefault(elementId, 0L);
 
+                    
+                    
+
+        // Existing elements and previously deleted elements require ownership.
+        boolean requiresLock = existing != null || deletedVersion > 0;
+
+        if (requiresLock &&
+                !roomLockService.ownsLock(roomId, elementId, sessionId)) {
+
+            // Reject the unauthorized modification and restore
+            // the latest authoritative element.
+            if (existing != null && existingVersion >= deletedVersion) {
+
+                acceptedUpserts.removeIf(element ->
+                        elementId.equals(String.valueOf(element.get("id")))
+                );
+
+                acceptedUpserts.add(new HashMap<>(existing));
+
+            } else if (deletedVersion > 0) {
+
+                // The element was already deleted.
+                acceptedDeletions.put(elementId, deletedVersion);
+            }
+
+            continue;
+        }
+
                         if (incomingVersion <= existingVersion ||
                 incomingVersion <= deletedVersion) {
 
@@ -171,6 +204,35 @@ if (message.getDeletedElementVersions() != null) {
         // Find the previous deletion version.
         long previousDeletionVersion =
                 deletionVersions.getOrDefault(elementId, 0L);
+
+                // Existing elements and previous deletion records require ownership.
+boolean requiresLock =
+        existing != null || previousDeletionVersion > 0;
+
+// Ignore deletion requests for unknown elements.
+if (!requiresLock) {
+    continue;
+}
+
+// Verify that the requesting session owns this element's lock.
+if (!roomLockService.ownsLock(roomId, elementId, sessionId)) {
+
+    // Restore the authoritative existing element.
+    if (existing != null) {
+
+        acceptedUpserts.removeIf(element ->
+                elementId.equals(String.valueOf(element.get("id")))
+        );
+
+        acceptedUpserts.add(new HashMap<>(existing));
+
+    } else if (previousDeletionVersion > 0) {
+
+        acceptedDeletions.put(elementId, previousDeletionVersion);
+    }
+
+    continue;
+}
 
         // Reject outdated or duplicate deletions.
         if (incomingDeletionVersion <= existingVersion ||
